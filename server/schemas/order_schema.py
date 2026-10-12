@@ -10,7 +10,10 @@ class OrderBase(BaseModel):
     @field_validator("customer_tax_id")
     @classmethod
     def validate_oib(cls, value: int)->int:
-        return 2
+        if not is_valid_oib(value):
+            raise ValueError("Invalid Croatian Tax ID (OIB)")
+        return value
+
 
 class OrderCreate(OrderBase):
     pass
