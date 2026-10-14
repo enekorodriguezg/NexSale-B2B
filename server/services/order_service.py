@@ -1,3 +1,4 @@
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 
@@ -12,8 +13,12 @@ def create_order(db: Session, order_data: OrderCreate, user_id: int) -> Order:
         running_total = 0.0
         db_items: list[OrderItem] = []
 
-        for item in order_data.items:
-            product = db.get(Product, item.product_id)
+        sorted_items = sorted(order_data.items, key=lambda x: x.product_id) #For safer locking during coocurring transactions
+
+        for item in sorted_items:
+            stmt = (select(Product).where(Product.id == item.product_id).with_for_update())
+            product = db.execute(stmt).scalar_one_or_none()
+
             if not product:
                 raise HTTPException(
                     status_code = status.HTTP_404_NOT_FOUND,
