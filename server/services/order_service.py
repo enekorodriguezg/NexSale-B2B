@@ -10,7 +10,6 @@ from server.models import Order, Product, User, OrderItem
 def create_order(db: Session, order_data: OrderCreate, user_id: int) -> Order:
 
     try:
-        running_total = 0.0
         db_items: list[OrderItem] = []
 
         sorted_items = sorted(order_data.items, key=lambda x: x.product_id) #For safer locking during coocurring transactions
@@ -24,9 +23,8 @@ def create_order(db: Session, order_data: OrderCreate, user_id: int) -> Order:
                     status_code = status.HTTP_404_NOT_FOUND,
                     detail = f"Product with ID {item.product_id} not found"
                 )
-            current_stock = int(product.stock) #type: ignore
 
-            if int(current_stock) < item.quantity:
+            if not product.has_enough_stock(item.quantity):
                 raise HTTPException(
                     status_code = status.HTTP_400_BAD_REQUEST,
                     detail = (
@@ -36,10 +34,7 @@ def create_order(db: Session, order_data: OrderCreate, user_id: int) -> Order:
                 )
 
             #Update stock
-            product.stock -= item.quantity #type: ignore
-
-            #Subtotal update
-            running_total += item.quantity*product.base_price
+            product.reduce_stock(item.quantity)
 
             #Item creation in memory
             order_item = OrderItem(
@@ -49,14 +44,14 @@ def create_order(db: Session, order_data: OrderCreate, user_id: int) -> Order:
             )
             db_items.append(order_item)
 
-        #Order creation
+        #Order creation and base total update
         new_order = Order(
             user_id = user_id,
             customer_name = order_data.customer_name,
             customer_tax_id = order_data.customer_tax_id,
-            base_total = running_total,
             items = db_items,
         )
+        new_order.calculate_total()
 
         #DataBase Update
         db.add(new_order)

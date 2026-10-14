@@ -33,7 +33,7 @@ class Product(Base):
     def has_enough_stock(self, quantity: int) -> bool:
         return self.stock >= quantity #type: ignore
 
-    def update_stock(self, quantity: int) -> None:
+    def reduce_stock(self, quantity: int) -> None:
         self.stock -= quantity
 
 
@@ -55,15 +55,12 @@ class Order(Base):
     def calculate_total(self) -> float:
         new_total = 0.0
         for item in self.items:
-            new_total += item.calculate_subtotal
+            new_total += item.calculate_subtotal()
         self.base_total = new_total
         return self.base_total
 
     def get_num_of_items(self) -> int:
-        sum = 0
-        for item in self.items:
-            sum += 1
-        return sum
+        return sum(item.quantity for item in self.items)
 
 
 
