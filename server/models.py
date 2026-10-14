@@ -13,6 +13,9 @@ class User(Base):
     salt = Column(String(64), nullable=False)
     role = Column(String(20), default="commercial", nullable=False)
 
+    #Relationship with orders
+    orders = relationship("Order", back_populates="user")
+
 
 class Product(Base):
 
@@ -34,14 +37,16 @@ class Order(Base):
     __tablename__ = "orders"
 
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("user.id"), nullable=False)
     customer_name = Column(String(100), nullable=False)
     customer_tax_id = Column(String(20), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     status = Column(String(20), default="Pending", nullable=False)
     base_total = Column(Float, default=0.0, nullable=False)
 
-    #Relationship to items
+    #Relationships
     items = relationship("OrderItem", back_populates="order", cascade="all,delete-orphan")
+    user = relationship("User", back_populates="orders")
 
 
 

@@ -13,7 +13,7 @@ class OrderItemBase(BaseModel):
 
 
 class OrderItemCreate(OrderItemBase):
-    product_id: str = Field(min_length=1, description = "Reference to the product")
+    product_id: int = Field(ge=1, description = "Reference to the product")
 
 
 class OrderItemResponse(OrderItemBase):
