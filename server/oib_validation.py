@@ -1,8 +1,5 @@
-
-
-
 def is_valid_oib(oib: str) -> bool:
-    if len(oib)!=11 or oib==None:
+    if len(oib) != 11 or oib == None:
         return False
     a = 10
     for digit_char in oib[:10]:

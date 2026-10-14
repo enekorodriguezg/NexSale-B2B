@@ -1,8 +1,10 @@
-from server.schemas.order_schema import OrderCreate
-from server.models import Order, Product, User, OrderItem
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 
+from server.schemas.order_schema import OrderCreate
+from server.models import Order, Product, User, OrderItem
+
+### --------------------------------------------------###
 
 def create_order(db: Session, order_data: OrderCreate, user_id: int) -> Order:
 
