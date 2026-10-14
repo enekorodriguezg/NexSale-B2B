@@ -15,9 +15,7 @@ class User(Base):
     hashed_password = Column(String(255), nullable = False)
     salt = Column(String(64), nullable = False)
     role = Column(String(20), default = "commercial", nullable = False)
-
-    #Relationship with orders
-    orders = relationship("Order", back_populates = "user")
+    orders = relationship("Order", back_populates = "user") #Relationship to order
 
 
 class Product(Base):
@@ -30,9 +28,14 @@ class Product(Base):
     category = Column(String(50), nullable = False, index = True)
     base_price = Column(Float, nullable = False)
     stock = Column(Integer, default = 0, nullable = False)
+    order_items = relationship("OrderItem",back_populates = "product") #Relationship to order items
 
-    #Relationship to order items
-    order_items = relationship("OrderItem",back_populates = "product")
+    def has_enough_stock(self, quantity: int) -> bool:
+        return self.stock >= quantity #type: ignore
+
+    def update_stock(self, quantity: int) -> None:
+        self.stock -= quantity
+
 
 
 class Order(Base):
@@ -46,10 +49,21 @@ class Order(Base):
     created_at = Column(DateTime, default = datetime.utcnow, nullable = False)
     status = Column(String(20), default = "Pending", nullable = False)
     base_total = Column(Float, default = 0.0, nullable = False)
+    items = relationship("OrderItem", back_populates = "order", cascade = "all,delete-orphan") #Relationship 1
+    user = relationship("User", back_populates = "orders") #Relationship 2
 
-    #Relationships
-    items = relationship("OrderItem", back_populates = "order", cascade = "all,delete-orphan")
-    user = relationship("User", back_populates = "orders")
+    def calculate_total(self) -> float:
+        new_total = 0.0
+        for item in self.items:
+            new_total += item.calculate_subtotal
+        self.base_total = new_total
+        return self.base_total
+
+    def get_num_of_items(self) -> int:
+        sum = 0
+        for item in self.items:
+            sum += 1
+        return sum
 
 
 
@@ -62,7 +76,11 @@ class OrderItem(Base):
     product_id = Column(Integer, ForeignKey("product.id"), nullable = False)
     quantity = Column(Integer, default = 1, nullable = False)
     unit_price = Column(Float, default = 0.0, nullable = False)
+    order = relationship("Order", back_populates = "items") #Relationship 1
+    product = relationship("Product", back_populates = "order_items") #Relationship 2
 
-    #Relationships
-    order = relationship("Order", back_populates = "items")
-    product = relationship("Product", back_populates = "order_items")
+    def is_product(self, id: int) -> bool:
+        return id == self.product_id
+
+    def calculate_subtotal(self) -> float:
+        return round(self.unit_price * self.quantity,2) #type: ignore
