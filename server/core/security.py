@@ -1,7 +1,10 @@
 import secrets
 import hashlib
+import jwt
+from datetime import datetime, timezone, timedelta
 
-from .config import PEPPER
+from .config import PEPPER, ACCESS_TOKEN_EXPIRE_MINUTES, SECRET_KEY, ALGORITHM
+from server.schemas.auth_schema import Token, TokenData
 
 ### --------------------------------------------------###
 
@@ -16,3 +19,18 @@ def verify_password(plain_password: str, salt: str, hashed_password: str) -> boo
     calculated_hash: str = generate_hashed_password(plain_password = plain_password, salt = salt)
     return secrets.compare_digest(calculated_hash, hashed_password)
 
+def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
+    to_encode = data.copy()
+    now = datetime.now(timezone.utc)
+
+    if expires_delta:
+        expire = now + expires_delta
+    else:
+        expire = now + timedelta(minutes = ACCESS_TOKEN_EXPIRE_MINUTES)
+        
+    to_encode["exp"] = expire
+    to_encode["iat"] = now
+
+    access_token: str = jwt.encode(payload = to_encode, key = SECRET_KEY, algorithm = ALGORITHM)
+
+    return access_token
