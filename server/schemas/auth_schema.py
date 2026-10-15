@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field
 ### --------------------------------------------------###
 
 class TokenData(BaseModel):
-    sub: str | None = None #sub = Subject
+    username: str | None = None #sub = Subject
     role: str | None = None
 
 

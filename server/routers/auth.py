@@ -7,6 +7,7 @@ from server.database import get_db
 from server.services import auth_service
 from server.models import User
 from server.core.security import create_access_token
+from server.api.deps import get_current_user
 
 ### --------------------------------------------------###
 
@@ -28,6 +29,14 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     access_token = create_access_token(data=payload)
 
     return {"access_token": access_token, "token_type": "bearer"}
+
+@router.get("/me")
+def read_current_user(current_user: User = Depends(get_current_user)):
+    return {
+      "id": current_user.id,
+      "username": current_user.username,
+      "role": current_user.role,
+  }
 
     
     
