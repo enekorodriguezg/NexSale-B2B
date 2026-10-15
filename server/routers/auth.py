@@ -7,7 +7,8 @@ from server.database import get_db
 from server.services import auth_service
 from server.models import User
 from server.core.security import create_access_token
-from server.api.deps import get_current_user
+from server.api.deps import get_current_user, RoleChecker
+from server.constants import UserRole
 
 ### --------------------------------------------------###
 
@@ -38,6 +39,9 @@ def read_current_user(current_user: User = Depends(get_current_user)):
       "role": current_user.role,
   }
 
+@router.get("/admin-only")
+def admin_dashboard(user: User = Depends(RoleChecker([UserRole.ADMIN]))):
+    return {"status": "ok", "user": user.username}
     
     
              

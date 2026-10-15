@@ -9,6 +9,7 @@ from server.database import get_db
 from server.core.config import SECRET_KEY, ALGORITHM
 from server.schemas.auth_schema import TokenData
 from server.models import User
+from server.constants import UserRole
 
 ### --------------------------------------------------###
 
@@ -43,6 +44,22 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
 
     return user
 
+
+class RoleChecker:
+
+     allowed_roles: list[UserRole]
+
+     def __init__(self, allowed_roles: list[UserRole]):
+         self.allowed_roles = allowed_roles
+
+     def __call__(self, current_user: User = Depends(get_current_user)) -> User:
+         if current_user.role not in self.allowed_roles:
+            raise HTTPException(
+                status_code = status.HTTP_403_FORBIDDEN,
+                detail = "Opperation not allowed"
+            )
+         return current_user
+             
     
 
 
