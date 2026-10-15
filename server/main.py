@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from .routers import orders, products
+from .routers import orders, products, auth
 from .database import Base, engine
 
 ### --------------------------------------------------###
@@ -16,6 +16,7 @@ app = FastAPI(
 #Routers
 app.include_router(orders.router)
 app.include_router(products.router)
+app.include_router(auth.router)
 
 
 @app.get("/health", tags = ["health"])
