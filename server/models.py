@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
 
 from .database import Base
 
@@ -46,7 +46,7 @@ class Order(Base):
     user_id = Column(Integer, ForeignKey("user.id"), nullable=False)
     customer_name = Column(String(100), nullable = False)
     customer_tax_id = Column(String(20), nullable = False)
-    created_at = Column(DateTime, default = datetime.utcnow, nullable = False)
+    created_at = Column(DateTime, default = datetime.now(timezone.utc), nullable = False)
     status = Column(String(20), default = "Pending", nullable = False)
     base_total = Column(Float, default = 0.0, nullable = False)
     items = relationship("OrderItem", back_populates = "order", cascade = "all,delete-orphan") #Relationship 1
