@@ -10,13 +10,19 @@ class ProductBase(BaseModel):
     base_price: float = Field(ge = 0.0)
     stock: int = Field(ge = 0)
 
+    model_config = ConfigDict(from_attributes=True)
+
 
 class ProductCreate(ProductBase):
     pass
 
-
 class ProductResponse(ProductBase):
     id: int
 
-    model_config = ConfigDict(from_attributes=True)
+
+class ProductUpdate(BaseModel):
+    name: str = Field(min_length = 1)
+    description: str = Field(min_length = 1)
+    base_price: float = Field(ge = 0.0)
+    stock: float = Field(ge = 0)
 

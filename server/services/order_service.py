@@ -1,9 +1,11 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
+from typing import Sequence
 
 from server.schemas.order_schema import OrderCreate
 from server.models import Order, Product, User, OrderItem
+from server.constants import UserRole
 
 ### --------------------------------------------------###
 
@@ -15,7 +17,7 @@ def create_order(db: Session, order_data: OrderCreate, user_id: int) -> Order:
         sorted_items = sorted(order_data.items, key=lambda x: x.product_id) #For safer locking during coocurring transactions
 
         for item in sorted_items:
-            stmt = (select(Product).where(Product.id == item.product_id).with_for_update())
+            stmt = select(Product).where(Product.id == item.product_id).with_for_update()
             product = db.execute(stmt).scalar_one_or_none()
 
             if not product:
@@ -72,4 +74,15 @@ def create_order(db: Session, order_data: OrderCreate, user_id: int) -> Order:
             detail = "An unexpected error occurred while processing the order"
         ) from e
 
-    
+
+def get_orders(db: Session, current_user: User) -> list[Order]:
+    if current_user.role is UserRole.COMMERCIAL:
+        stmt = select(Order).where(Order.user_id == current_user.id)
+    else:
+        stmt = select(Order)
+        
+    orders: list[Order] = list(db.scalars(stmt).all())
+
+    return orders
+
+

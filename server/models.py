@@ -8,7 +8,7 @@ from .database import Base
 
 class User(Base):
 
-    __tablename__ = "user"
+    __tablename__ = "users"
 
     id = Column(Integer, primary_key = True, index = True)
     username = Column(String(50), unique = True, nullable = False, index = True)
@@ -20,11 +20,12 @@ class User(Base):
 
 class Product(Base):
 
-    __tablename__ = "product"
+    __tablename__ = "products"
 
     id = Column(Integer, primary_key = True, index = True)
     sku = Column(String(50), unique = True, nullable = False, index = True)
     name = Column(String(50), nullable = False)
+    description = Column(String(100), nullable = False)
     category = Column(String(50), nullable = False, index = True)
     base_price = Column(Float, nullable = False)
     stock = Column(Integer, default = 0, nullable = False)
@@ -43,7 +44,7 @@ class Order(Base):
     __tablename__ = "orders"
 
     id = Column(Integer, primary_key = True, index = True)
-    user_id = Column(Integer, ForeignKey("user.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     customer_name = Column(String(100), nullable = False)
     customer_tax_id = Column(String(20), nullable = False)
     created_at = Column(DateTime, default = datetime.now(timezone.utc), nullable = False)
@@ -70,7 +71,7 @@ class OrderItem(Base):
 
     id = Column(Integer, primary_key = True, index = True)
     order_id = Column(Integer, ForeignKey("orders.id"), nullable = False)
-    product_id = Column(Integer, ForeignKey("product.id"), nullable = False)
+    product_id = Column(Integer, ForeignKey("products.id"), nullable = False)
     quantity = Column(Integer, default = 1, nullable = False)
     unit_price = Column(Float, default = 0.0, nullable = False)
     order = relationship("Order", back_populates = "items") #Relationship 1
