@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, computed_field
 
 ### --------------------------------------------------###
 
@@ -18,6 +18,22 @@ class ProductCreate(ProductBase):
 
 class ProductResponse(ProductBase):
     id: int
+
+    @computed_field
+    @property
+    def inventory_value(self) -> float:
+        return round(self.base_price * self.stock, 2)
+
+    @computed_field
+    @property
+    def stock_status(self) -> str:
+        if self.stock == 0:
+            return "OUT_OF_STOCK"
+        elif self.stock < 10:
+            return "LOW_STOCK"
+        return "IN_STOCK"
+
+    
 
 
 class ProductUpdate(BaseModel):

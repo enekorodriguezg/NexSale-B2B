@@ -18,8 +18,8 @@ def create_order(order_in: OrderCreate, db: Session = Depends(get_db), current_u
     return created_order
 
 @router.get("", response_model = list[OrderResponse], status_code = status.HTTP_200_OK)
-def get_orders(db: Session = Depends(get_db), current_user: User = Depends(RoleChecker([UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.WAREHOUSE]))) -> list[Order]:
-    orders: list[Order] = order_service.get_orders(db = db, current_user = current_user)
+def get_orders(order_by: str = "id", sort_order: str = "asc", db: Session = Depends(get_db), current_user: User = Depends(RoleChecker([UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.WAREHOUSE]))) -> list[Order]:
+    orders: list[Order] = order_service.get_orders(order_by = order_by, sort_order = sort_order, db = db, current_user = current_user)
     return orders
     
 

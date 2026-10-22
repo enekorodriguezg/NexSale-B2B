@@ -13,8 +13,8 @@ from server.constants import UserRole
 router = APIRouter(prefix = "/products", tags = ["Products"])
 
 @router.get("", response_model = list[ProductResponse], status_code = status.HTTP_200_OK)
-def get_products(db: Session = Depends(get_db), current_user: User = Depends(RoleChecker([UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.WAREHOUSE]))):
-    products: list[Product] = product_service.get_all_products(db)
+def get_products(order_by: str = "id", sort_order: str = "asc", db: Session = Depends(get_db), current_user: User = Depends(RoleChecker([UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.WAREHOUSE]))):
+    products: list[Product] = product_service.get_all_products(order_by = order_by, sort_order = sort_order, db = db)
     return products
 
 @router.post("", response_model = ProductResponse, status_code = status.HTTP_201_CREATED)
