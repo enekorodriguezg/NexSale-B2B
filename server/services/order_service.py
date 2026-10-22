@@ -75,11 +75,27 @@ def create_order(db: Session, order_data: OrderCreate, user_id: int) -> Order:
         ) from e
 
 
-def get_orders(db: Session, current_user: User) -> list[Order]:
-    if current_user.role is UserRole.COMMERCIAL:
-        stmt = select(Order).where(Order.user_id == current_user.id)
+def get_orders(order_by: str, sort_order: str, db: Session, current_user: User) -> list[Order]:
+
+    allowed_columns: list[str] = ["id", "total_amount", "created_at", "status"]
+    if order_by not in allowed_columns:
+        raise HTTPException(
+            status_code = status.HTTP_400_BAD_REQUEST,
+            detail = "Invalid column for order"
+        )
+
+    sort_column = getattr(Order, order_by)
+
+    if sort_order.lower() == "desc":
+        sort_criteria = sort_column.desc()
+
     else:
-        stmt = select(Order)
+        sort_criteria = sort_column.asc()
+
+    if current_user.role is UserRole.COMMERCIAL:
+        stmt = select(Order).where(Order.user_id == current_user.id).order_by(sort_criteria)
+    else:
+        stmt = select(Order).order_by(sort_criteria)
         
     orders: list[Order] = list(db.scalars(stmt).all())
 

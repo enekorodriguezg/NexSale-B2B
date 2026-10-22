@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field, ConfigDict, field_validator, computed_field
+from stdnum.hr import oib
 
 from .order_item_schema import OrderItemCreate, OrderItemResponse
-from server.oib_validation import is_valid_oib
 
 ### --------------------------------------------------###
 
@@ -12,7 +12,7 @@ class OrderBase(BaseModel):
     @field_validator("customer_tax_id")
     @classmethod
     def validate_oib(cls, value: str) -> str:
-        if not is_valid_oib(value):
+        if not oib.is_valid(value):
             raise ValueError("Invalid Croatian Tax ID (OIB)")
         return value
 
