@@ -32,12 +32,15 @@ def update_order():
     pass
 
 @router.get("/{order_id}/report", status_code = status.HTTP_200_OK)
-def create_report(order_id: int, db: Session = Depends(get_db)):
-    pdf_bytearray = report_service.create_report(order_id = order_id, db = db)
+def create_report(order_id: int, format: str = "pdf", db: Session = Depends(get_db)):
+    file_bytes, media_type, file_extension = report_service.create_report(order_id = order_id, format = format, db = db)
 
     return Response(
-        content = bytes(pdf_bytearray),
-        media_type = "application/pdf",
-        headers = {"Content-Disposition": f'attachment; filename="order_report_{order_id}.pdf"'}
+        content = bytes(file_bytes),
+        media_type = media_type,
+        headers={"Content-Disposition": f'attachment; filename="order_{order_id}_invoice.{file_extension}"'}
+
     )
+
+
     
