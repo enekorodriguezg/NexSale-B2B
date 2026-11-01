@@ -1,7 +1,7 @@
-from fastapi import APIRouter, status, Depends
+from fastapi import APIRouter, status, Depends, Response
 from sqlalchemy.orm import Session
 
-from server.services import order_service
+from server.services import order_service, report_service
 from server.schemas.order_schema import OrderCreate, OrderResponse
 from server.database import get_db
 from server.models import Order, User
@@ -30,3 +30,14 @@ def delete_order():
 @router.put("")
 def update_order():
     pass
+
+@router.get("/{order_id}/report", status_code = status.HTTP_200_OK)
+def create_report(order_id: int, db: Session = Depends(get_db)):
+    pdf_bytearray = report_service.create_report(order_id = order_id, db = db)
+
+    return Response(
+        content = bytes(pdf_bytearray),
+        media_type = "application/pdf",
+        headers = {"Content-Disposition": f'attachment; filename="order_report_{order_id}.pdf"'}
+    )
+    
