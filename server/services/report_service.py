@@ -1,3 +1,4 @@
+import threading
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
@@ -7,39 +8,42 @@ from server.models import Order
 
 ### --------------------------------------------------###
 
+report_semaphore = threading.Semaphore(3)
+
 def create_report(order_id: int, format: str, db: Session):
     media_type: str = f"application/{format}"
     file_extension: str = format
-    try: 
-        stmt = select(Order).where(Order.id == order_id)
-        order: Order = db.execute(stmt).scalar_one_or_none()
-        
-        if not order:
+    with report_semaphore:
+        try: 
+            stmt = select(Order).where(Order.id == order_id)
+            order: Order = db.execute(stmt).scalar_one_or_none()
+            
+            if not order:
+                raise HTTPException(
+                    status_code = status.HTTP_404_NOT_FOUND,
+                    detail = f"Order with ID {order_id} not found"
+                )
+            
+            if format == "pdf":
+                file_bytes = create_pdf_report(order = order)
+            elif format == "rtf":
+                file_bytes = create_rtf_report(order = order)
+            else:
+                raise HTTPException(
+                    status_code = status.HTTP_400_BAD_REQUEST,
+                    detail = "Invalid report format"
+                )
+
+            return file_bytes, media_type, file_extension
+
+        except HTTPException:
+            raise
+
+        except Exception as e:
             raise HTTPException(
-                status_code = status.HTTP_404_NOT_FOUND,
-                detail = f"Order with ID {order_id} not found"
-            )
-        
-        if format == "pdf":
-            file_bytes = create_pdf_report(order = order)
-        elif format == "rtf":
-            file_bytes = create_rtf_report(order = order)
-        else:
-            raise HTTPException(
-                status_code = status.HTTP_400_BAD_REQUEST,
-                detail = "Invalid report format"
-            )
-
-        return file_bytes, media_type, file_extension
-
-    except HTTPException:
-        raise
-
-    except Exception as e:
-        raise HTTPException(
-            status_code = status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail = "An unexpected error occured during report generation"
-        ) from e
+                status_code = status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail = "An unexpected error occured during report generation"
+            ) from e
 
 def create_pdf_report(order: Order) -> bytearray:
     pdf = FPDF()
