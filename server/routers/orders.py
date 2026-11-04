@@ -14,7 +14,7 @@ router = APIRouter(prefix = "/orders", tags = ["Orders"])
 
 @router.post("", response_model = OrderResponse, status_code = status.HTTP_201_CREATED)
 def create_order(order_in: OrderCreate, db: Session = Depends(get_db), current_user: User = Depends(RoleChecker([UserRole.COMMERCIAL, UserRole.ADMIN]))):
-    created_order: Order = order_service.create_order(db = db, order_data = order_in, user_id = current_user.id) #type: ignore
+    created_order: Order = order_service.create_order(db = db, order_data = order_in, user_id = current_user.id) 
     return created_order
 
 @router.get("", response_model = list[OrderResponse], status_code = status.HTTP_200_OK)

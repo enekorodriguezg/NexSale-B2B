@@ -36,7 +36,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     except (jwt.PyJWTError, ValidationError):
         raise credentials_exception
 
-    stmt = select(User).where(User.username == token_data.username) #type: ignore
+    stmt = select(User).where(User.username == token_data.username) 
     user = db.execute(stmt).scalar_one_or_none()
 
     if not user:
