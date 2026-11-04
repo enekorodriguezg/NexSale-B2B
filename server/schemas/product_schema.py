@@ -32,13 +32,3 @@ class ProductResponse(ProductBase):
         elif self.stock < 10:
             return "LOW_STOCK"
         return "IN_STOCK"
-
-    
-
-
-class ProductUpdate(BaseModel):
-    name: str = Field(min_length = 1)
-    description: str = Field(min_length = 1)
-    base_price: float = Field(ge = 0.0)
-    stock: float = Field(ge = 0)
-
