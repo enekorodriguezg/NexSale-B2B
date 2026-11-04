@@ -27,21 +27,21 @@ services:
     env_file:
       - .env
     environment:
-      - DB_HOST: db
-      - MYSQL_HOST: db
-      - MYSQL_PORT: 3306
+      - DB_HOST=db
+      - MYSQL_HOST=db
+      - MYSQL_PORT=3306
     depends_on:
         db:
-          condition: service_health
+          condition: service_healthy
     networks:
-      -nexsale_net
+      - nexsale_net
 
   apache:
     build: ./apache
     container_name: nexsale_apache
     restart: always
     ports:
-      -"80:80"
+      - "80:80"
     depends_on:
       - nexsale_api
     networks:
