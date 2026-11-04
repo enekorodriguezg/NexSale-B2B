@@ -8,6 +8,12 @@ from server.database import get_db
 
 ### --------------------------------------------------###
 
+def get_product_by_id(product_id: int, db: Session) -> Product | None:
+    stmt = select(Product).where(Product.id == product_id)
+    return db.execute(stmt).scalar_one_or_none()
+
+### --------------------------------------------------###
+
 def get_all_products(order_by, sort_order, db: Session) -> list[Product]:
 
     allowed_columns : list[str] = ["id", "name", "price", "stock"]
@@ -70,9 +76,7 @@ def insert_image(product_id: int, image: bytes, content_type: str | None, db: Se
         )
     
     try:
-        stmt = select(Product).where(Product.id == product_id)
-        product = db.execute(stmt).scalar_one_or_none()
-        
+        product = get_product_by_id(product_id = product_id, db = db)
         if not product:
             raise HTTPException(
                 status_code = status.HTTP_404_NOT_FOUND,
@@ -97,9 +101,7 @@ def insert_image(product_id: int, image: bytes, content_type: str | None, db: Se
 
 def get_product_image(product_id: int, db: Session) -> bytes:
     try:
-        stmt = select(Product).where(Product.id == product_id)
-        product = db.execute(stmt).scalar_one_or_none()
-
+        product = get_product_by_id(product_id = product_id, db = db)
         if not product:
             raise HTTPException(
                 status_code = status.HTTP_404_NOT_FOUND,
