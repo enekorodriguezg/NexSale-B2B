@@ -11,14 +11,19 @@ from server.models import User
 
 USERS_TO_SEED = [
     {
-        "username": "enekoadmin",
-        "plain_password": "enekoadmin",
+        "username": "admin",
+        "plain_password": "admin",
         "role": "admin",
     },
     {
-        "username": "enekocom",
-        "plain_password": "enekocom",
+        "username": "user_com",
+        "plain_password": "user_com",
         "role": "commercial",
+    },
+    {
+        "username": "user_ware",
+        "plain_password": "user_ware",
+        "role": "warehouse",
     },
 ]
 

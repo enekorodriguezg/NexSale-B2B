@@ -2,10 +2,12 @@ from fastapi import FastAPI
 
 from .routers import orders, products, auth
 from .database import Base, engine
+from scripts.seed_users import seed_database
 
 ### --------------------------------------------------###
 
 Base.metadata.create_all(bind = engine)
+seed_database()
 
 app = FastAPI(
     title = "NexSale-B2B",
