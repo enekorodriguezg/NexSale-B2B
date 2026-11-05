@@ -31,7 +31,7 @@ def update_product(product_id: int, db: Session = Depends(get_db), current_user:
     pass
 
 @router.put("/{product_id}/image", status_code = status.HTTP_200_OK)
-async def insert_image(product_id: int, image: bytes, file: UploadFile, db: Session = Depends(get_db), current_user: User = Depends(RoleChecker([UserRole.ADMIN, UserRole.WAREHOUSE]))):
+async def insert_image(product_id: int, file: UploadFile, db: Session = Depends(get_db), current_user: User = Depends(RoleChecker([UserRole.ADMIN, UserRole.WAREHOUSE]))):
     image_bytes = await file.read()
     content_type = file.content_type
     product = product_service.insert_image(product_id = product_id, image = image_bytes, content_type = content_type, db = db)

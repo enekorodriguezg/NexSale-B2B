@@ -16,7 +16,7 @@ def get_product_by_id(product_id: int, db: Session) -> Product | None:
 
 def get_all_products(order_by, sort_order, db: Session) -> list[Product]:
 
-    allowed_columns : list[str] = ["id", "name", "price", "stock"]
+    allowed_columns : list[str] = ["id", "name", "base_price", "stock"]
     if order_by not in allowed_columns:
         raise HTTPException(
             status_code = status.HTTP_400_BAD_REQUEST,

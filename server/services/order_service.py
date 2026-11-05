@@ -83,7 +83,7 @@ def create_order(db: Session, order_data: OrderCreate, user_id: int) -> Order:
 
 def get_orders(order_by: str, sort_order: str, db: Session, current_user: User) -> list[Order]:
 
-    allowed_columns: list[str] = ["id", "total_amount", "created_at", "status"]
+    allowed_columns: list[str] = ["id", "base_total", "created_at", "status"]
     if order_by not in allowed_columns:
         raise HTTPException(
             status_code = status.HTTP_400_BAD_REQUEST,
