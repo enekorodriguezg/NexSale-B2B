@@ -116,11 +116,9 @@ def delete_order(order_id: int, db: Session) -> Order:
                 status_code = status.HTTP_404_NOT_FOUND,
                 detail = f"Order with ID {order_id} not found"
             )
-        stmt = delete(Order).where(Order.id == order_id)
-        db.execute(stmt)
-
+        
+        db.delete(order)
         db.commit()
-        db.refresh(Order)
         return order
 
     except HTTPException:
