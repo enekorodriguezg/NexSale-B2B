@@ -23,11 +23,12 @@ def get_orders(order_by: str = "id", sort_order: str = "asc", db: Session = Depe
     return orders
     
 
-@router.delete("")
-def delete_order():
-    pass
+@router.delete("/{order_id}", status_code = status.HTTP_200_OK)
+def delete_order(order_id: int, db: Session = Depends(get_db), current_user: User = Depends(RoleChecker([UserRole.ADMIN]))):
+    order = order_service.delete_order(order_id = order_id, db = db)
+    return order
 
-@router.put("")
+@router.put("") #TODO
 def update_order():
     pass
 

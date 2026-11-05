@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import select, delete
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 from typing import Sequence
@@ -7,6 +7,12 @@ from server.schemas.order_schema import OrderCreate
 from server.models import Order, Product, User, OrderItem
 from server.constants import UserRole
 
+### --------------------------------------------------###
+
+def get_order_by_id(order_id: int, db: Session) -> Order | None:
+    stmt = select(Order).where(Order.id == order_id)
+    return db.execute(stmt).scalar_one_or_none()
+    
 ### --------------------------------------------------###
 
 def create_order(db: Session, order_data: OrderCreate, user_id: int) -> Order:
@@ -100,5 +106,33 @@ def get_orders(order_by: str, sort_order: str, db: Session, current_user: User) 
     orders: list[Order] = list(db.scalars(stmt).all())
 
     return orders
+
+
+def delete_order(order_id: int, db: Session) -> Order:
+    try:
+        order = get_order_by_id(order_id = order_id, db = db)
+        if not order:
+            raise HTTPException(
+                status_code = status.HTTP_404_NOT_FOUND,
+                detail = f"Order with ID {order_id} not found"
+            )
+        stmt = delete(Order).where(Order.id == order_id)
+        db.execute(stmt)
+
+        db.commit()
+        db.refresh(Order)
+        return order
+
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code = status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail = "An error occurred"
+        )
+    
+
 
 
