@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NexSale B2B - Portal de Gestión</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 min-h-screen text-slate-800">
+
+    <!-- NAVBAR -->
+    <nav class="bg-slate-900 text-white px-6 py-4 flex justify-between items-center shadow-md">
+        <div class="flex items-center space-x-3">
+            <span class="text-xl font-bold tracking-wide text-blue-400">NexSale B2B</span>
+            <span id="user-badge" class="hidden text-xs bg-slate-700 px-2.5 py-1 rounded-full"></span>
+        </div>
+        <div class="flex items-center space-x-4">
+            <a href="/docs" target="_blank" class="text-sm text-slate-300 hover:text-white underline">Swagger API</a>
+            <button id="logout-btn" onclick="logout()" class="hidden bg-red-600 hover:bg-red-700 text-white text-sm px-3 py-1.5 rounded">
+                Cerrar Sesión
+            </button>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto p-6">
+
+        <!-- ALERTAS -->
+        <div id="alert-box" class="hidden mb-4 p-4 rounded-lg text-sm font-medium"></div>
+
+        <!-- PANTALLA DE LOGIN -->
+        <div id="login-section" class="max-w-md mx-auto bg-white p-8 rounded-xl shadow-md mt-12">
+            <h2 class="text-2xl font-bold mb-2 text-center">Iniciar Sesión</h2>
+            <p class="text-slate-500 text-sm text-center mb-6">Accede con tu cuenta de NexSale B2B</p>
+            <form onsubmit="handleLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Usuario</label>
+                    <input type="text" id="login-username" required placeholder="enekoadmin / enekocom"
+                        class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Contraseña</label>
+                    <input type="password" id="login-password" required placeholder="••••••••"
+                        class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg transition">
+                    Entrar
+                </button>
+            </form>
+        </div>
+
+        <!-- DASHBOARD PRINCIPAL -->
+        <div id="app-section" class="hidden space-y-8">
+
+            <!-- TABS -->
+            <div class="flex space-x-4 border-b border-slate-300 pb-2">
+                <button onclick="switchTab('products')" id="tab-products" class="font-semibold px-4 py-2 rounded-lg bg-blue-600 text-white">
+                    Catálogo de Productos
+                </button>
+                <button onclick="switchTab('orders')" id="tab-orders" class="font-semibold px-4 py-2 rounded-lg bg-white text-slate-700 hover:bg-slate-200">
+                    Pedidos y Facturación
+                </button>
+            </div>
+
+            <!-- SECCIÓN PRODUCTOS -->
+            <div id="section-products" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                <!-- Formulario Nuevo Producto (Admin / Warehouse) -->
+                <div id="create-product-card" class="bg-white p-6 rounded-xl shadow-sm h-fit">
+                    <h3 class="text-lg font-bold mb-4">Nuevo Producto</h3>
+                    <form onsubmit="handleCreateProduct(event)" class="space-y-3 text-sm">
+                        <input type="text" id="prod-sku" placeholder="SKU (ej. LAP-001)" required class="w-full border rounded px-3 py-2">
+                        <input type="text" id="prod-name" placeholder="Nombre del producto" required class="w-full border rounded px-3 py-2">
+                        <input type="text" id="prod-desc" placeholder="Descripción" required class="w-full border rounded px-3 py-2">
+                        <input type="text" id="prod-cat" placeholder="Categoría (ej. Hardware)" required class="w-full border rounded px-3 py-2">
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="number" step="0.01" min="0" id="prod-price" placeholder="Precio Base (€)" required class="w-full border rounded px-3 py-2">
+                            <input type="number" min="0" id="prod-stock" placeholder="Stock inicial" required class="w-full border rounded px-3 py-2">
+                        </div>
+                        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 rounded">
+                            Crear Producto
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Lista de Productos -->
+                <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-bold">Inventario Actual</h3>
+                        <button onclick="loadProducts()" class="text-sm bg-slate-100 hover:bg-slate-200 px-3 py-1 rounded">🔄 Actualizar</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm border-collapse">
+                            <thead>
+                                <tr class="border-b bg-slate-50 text-slate-600">
+                                    <th class="p-2">Img</th>
+                                    <th class="p-2">ID / SKU</th>
+                                    <th class="p-2">Nombre</th>
+                                    <th class="p-2">Precio</th>
+                                    <th class="p-2">Stock</th>
+                                    <th class="p-2">Subir Imagen (BLOB)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="products-tbody" class="divide-y"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECCIÓN PEDIDOS -->
+            <div id="section-orders" class="hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                <!-- Crear Pedido (Admin / Commercial) -->
+                <div id="create-order-card" class="bg-white p-6 rounded-xl shadow-sm h-fit">
+                    <h3 class="text-lg font-bold mb-4">Crear Nuevo Pedido</h3>
+                    <form onsubmit="handleCreateOrder(event)" class="space-y-3 text-sm">
+                        <div>
+                            <label class="block text-xs text-slate-500 mb-1">Cliente / Empresa</label>
+                            <input type="text" id="order-customer" placeholder="Ej. TechCorp d.o.o." required class="w-full border rounded px-3 py-2">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-500 mb-1">NIF Croata (OIB - 11 dígitos)</label>
+                            <div class="flex space-x-2">
+                                <input type="text" id="order-oib" value="12345678903" required maxlength="11" class="w-full border rounded px-3 py-2 font-mono">
+                                <button type="button" onclick="generateValidOIB()" class="bg-slate-200 hover:bg-slate-300 px-2.5 rounded text-xs">Generar</button>
+                            </div>
+                        </div>
+
+                        <div class="border-t pt-3">
+                            <label class="block text-xs font-semibold mb-2">Líneas de Pedido</label>
+                            <div id="order-items-container" class="space-y-2"></div>
+                            <button type="button" onclick="addOrderItemRow()" class="mt-2 text-xs text-blue-600 hover:underline font-medium">
+                                + Añadir otro producto
+                            </button>
+                        </div>
+
+                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded mt-4">
+                            Confirmar Pedido
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Lista de Pedidos -->
+                <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-bold">Historial de Pedidos</h3>
+                        <button onclick="loadOrders()" class="text-sm bg-slate-100 hover:bg-slate-200 px-3 py-1 rounded">🔄 Actualizar</button>
+                    </div>
+                    <div id="orders-list" class="space-y-4"></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        let token = localStorage.getItem('nexsale_token') || null;
+        let currentUser = null;
+        let cachedProducts = [];
+
+        function showAlert(msg, isError = false) {
+            const box = document.getElementById('alert-box');
+            box.textContent = msg;
+            box.className = `mb-4 p-4 rounded-lg text-sm font-medium ${isError ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800'}`;
+            box.classList.remove('hidden');
+            setTimeout(() => box.classList.add('hidden'), 5000);
+        }
+
+        async function apiFetch(url, options = {}) {
+            const headers = options.headers || {};
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+            const response = await fetch(url, { ...options, headers });
+            if (response.status === 401) {
+                logout();
+                throw new Error("Sesión expirada o no autorizada");
+            }
+            return response;
+        }
+
+        // --- AUTENTICACIÓN ---
+        async function handleLogin(e) {
+            e.preventDefault();
+            const formData = new URLSearchParams();
+            formData.append('username', document.getElementById('login-username').value);
+            formData.append('password', document.getElementById('login-password').value);
+
+            try {
+                const res = await fetch('/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: formData
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || 'Error al iniciar sesión');
+
+                token = data.access_token;
+                localStorage.setItem('nexsale_token', token);
+                await initSession();
+            } catch (err) {
+                showAlert(err.message, true);
+            }
+        }
+
+        async function initSession() {
+            if (!token) return;
+            try {
+                const res = await apiFetch('/auth/me');
+                currentUser = await res.json();
+
+                document.getElementById('login-section').classList.add('hidden');
+                document.getElementById('app-section').classList.remove('hidden');
+                document.getElementById('logout-btn').classList.remove('hidden');
+
+                const badge = document.getElementById('user-badge');
+                badge.textContent = `${currentUser.username} (${currentUser.role.toUpperCase()})`;
+                badge.classList.remove('hidden');
+
+                await loadProducts();
+                await loadOrders();
+                resetOrderForm();
+            } catch (err) {
+                logout();
+            }
+        }
+
+        function logout() {
+            token = null;
+            currentUser = null;
+            localStorage.removeItem('nexsale_token');
+            document.getElementById('login-section').classList.remove('hidden');
+            document.getElementById('app-section').classList.add('hidden');
+            document.getElementById('logout-btn').classList.add('hidden');
+            document.getElementById('user-badge').classList.add('hidden');
+        }
+
+        function switchTab(tab) {
+            const isProd = tab === 'products';
+            document.getElementById('section-products').classList.toggle('hidden', !isProd);
+            document.getElementById('section-orders').classList.toggle('hidden', isProd);
+            document.getElementById('tab-products').className = isProd
+                ? 'font-semibold px-4 py-2 rounded-lg bg-blue-600 text-white'
+                : 'font-semibold px-4 py-2 rounded-lg bg-white text-slate-700 hover:bg-slate-200';
+            document.getElementById('tab-orders').className = !isProd
+                ? 'font-semibold px-4 py-2 rounded-lg bg-blue-600 text-white'
+                : 'font-semibold px-4 py-2 rounded-lg bg-white text-slate-700 hover:bg-slate-200';
+        }
+
+        // --- PRODUCTOS Y BLOBs ---
+        async function loadProducts() {
+            try {
+                const res = await apiFetch('/products?order_by=id&sort_order=asc');
+                cachedProducts = await res.json();
+                const tbody = document.getElementById('products-tbody');
+                tbody.innerHTML = '';
+
+                for (const p of cachedProducts) {
+                    const statusColor = p.stock_status === 'IN_STOCK' ? 'bg-emerald-100 text-emerald-700'
+                        : p.stock_status === 'LOW_STOCK' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700';
+
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="p-2">
+                            <img id="img-prod-${p.id}" src="https://placehold.co/48x48?text=No+Img" 
+                                 class="w-12 h-12 object-cover rounded border" alt="prod">
+                        </td>
+                        <td class="p-2 font-mono text-xs"><strong>#${p.id}</strong><br>${p.sku}</td>
+                        <td class="p-2">
+                            <div class="font-semibold">${p.name}</div>
+                            <div class="text-xs text-slate-500">${p.category} - ${p.description || ''}</div>
+                        </td>
+                        <td class="p-2 font-semibold">${p.base_price.toFixed(2)} €</td>
+                        <td class="p-2">
+                            <span class="px-2 py-0.5 rounded text-xs font-bold ${statusColor}">${p.stock} uds (${p.stock_status})</span>
+                        </td>
+                        <td class="p-2">
+                            <input type="file" accept="image/*" onchange="uploadImage(${p.id}, this)" class="text-xs w-44">
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                    fetchProductImageBlob(p.id);
+                }
+            } catch (err) {
+                showAlert(err.message, true);
+            }
+        }
+
+        async function fetchProductImageBlob(productId) {
+            try {
+                const res = await apiFetch(`/products/${productId}/image`);
+                if (res.ok) {
+                    const blob = await res.blob();
+                    document.getElementById(`img-prod-${productId}`).src = URL.createObjectURL(blob);
+                }
+            } catch (_) {}
+        }
+
+        async function uploadImage(productId, inputEl) {
+            if (!inputEl.files.length) return;
+            const formData = new FormData();
+            formData.append('file', inputEl.files[0]);
+
+            try {
+                const res = await apiFetch(`/products/${productId}/image`, {
+                    method: 'PUT',
+                    body: formData
+                });
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.detail || 'Error subiendo imagen');
+                }
+                showAlert(`Imagen actualizada para el producto #${productId}`);
+                fetchProductImageBlob(productId);
+            } catch (err) {
+                showAlert(err.message, true);
+            }
+        }
+
+        async function handleCreateProduct(e) {
+            e.preventDefault();
+            const payload = {
+                sku: document.getElementById('prod-sku').value,
+                name: document.getElementById('prod-name').value,
+                description: document.getElementById('prod-desc').value,
+                category: document.getElementById('prod-cat').value,
+                base_price: parseFloat(document.getElementById('prod-price').value),
+                stock: parseInt(document.getElementById('prod-stock').value, 10)
+            };
+
+            try {
+                const res = await apiFetch('/products', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || 'No se pudo crear el producto');
+
+                showAlert(`Producto "${data.name}" creado con éxito`);
+                e.target.reset();
+                await loadProducts();
+                resetOrderForm();
+            } catch (err) {
+                showAlert(err.message, true);
+            }
+        }
+
+        // --- PEDIDOS Y REPORTES (PDF / RTF) ---
+        function generateValidOIB() {
+            // Algoritmo oficial ISO 7064, MOD 11, 10 para stdnum.hr.oib
+            let digits = Array.from({length: 10}, () => Math.floor(Math.random() * 10));
+            let t = 10;
+            for (let d of digits) {
+                t = (t + d) % 10;
+                if (t === 0) t = 10;
+                t = (t * 2) % 11;
+            }
+            let check = (11 - t) % 10;
+            document.getElementById('order-oib').value = digits.join('') + check;
+        }
+
+        function addOrderItemRow() {
+            const container = document.getElementById('order-items-container');
+            const div = document.createElement('div');
+            div.className = 'flex space-x-2';
+            const options = cachedProducts.map(p => `<option value="${p.id}">#${p.id} ${p.name} (${p.base_price}€ | Stock: ${p.stock})</option>`).join('');
+            div.innerHTML = `
+                <select class="order-prod-id w-2/3 border rounded px-2 py-1.5 text-xs" required>${options}</select>
+                <input type="number" min="1" value="1" class="order-prod-qty w-1/3 border rounded px-2 py-1.5 text-xs" required>
+            `;
+            container.appendChild(div);
+        }
+
+        function resetOrderForm() {
+            document.getElementById('order-items-container').innerHTML = '';
+            generateValidOIB();
+            if (cachedProducts.length > 0) addOrderItemRow();
+        }
+
+        async function handleCreateOrder(e) {
+            e.preventDefault();
+            const prodSelects = document.querySelectorAll('.order-prod-id');
+            const qtyInputs = document.querySelectorAll('.order-prod-qty');
+            const items = [];
+            prodSelects.forEach((sel, idx) => {
+                items.push({
+                    product_id: parseInt(sel.value, 10),
+                    quantity: parseInt(qtyInputs[idx].value, 10)
+                });
+            });
+
+            const payload = {
+                customer_name: document.getElementById('order-customer').value,
+                customer_tax_id: document.getElementById('order-oib').value,
+                items
+            };
+
+            try {
+                const res = await apiFetch('/orders', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail));
+
+                showAlert(`Pedido #${data.id} creado correctamente`);
+                await loadProducts();
+                await loadOrders();
+                resetOrderForm();
+            } catch (err) {
+                showAlert(err.message, true);
+            }
+        }
+
+        async function loadOrders() {
+            try {
+                const res = await apiFetch('/orders?order_by=id&sort_order=desc');
+                const orders = await res.json();
+                const list = document.getElementById('orders-list');
+                list.innerHTML = '';
+
+                if (!orders.length) {
+                    list.innerHTML = '<p class="text-sm text-slate-500">No hay pedidos registrados.</p>';
+                    return;
+                }
+
+                for (const o of orders) {
+                    const itemsHtml = o.items.map(i => `
+                        <li class="text-xs text-slate-600">
+                            • ${i.quantity}x <strong>${i.product ? i.product.name : 'Prod #' + i.product_id}</strong> 
+                            (${i.unit_price.toFixed(2)}€/ud) = <strong>${i.total_price.toFixed(2)}€</strong>
+                        </li>
+                    `).join('');
+
+                    const card = document.createElement('div');
+                    card.className = 'border rounded-lg p-4 bg-slate-50 flex justify-between items-start';
+                    card.innerHTML = `
+                        <div>
+                            <div class="font-bold text-sm">Pedido #${o.id} — ${o.customer_name}</div>
+                            <div class="text-xs text-slate-500 mb-2">OIB: ${o.customer_tax_id} | Usuario ID: ${o.user_id}</div>
+                            <ul class="space-y-1 mb-2">${itemsHtml}</ul>
+                            <div class="text-sm font-bold text-blue-700">Total: ${o.order_price.toFixed(2)} €</div>
+                        </div>
+                        <div class="flex flex-col space-y-2 text-xs">
+                            <button onclick="downloadReport(${o.id}, 'pdf')" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded">
+                                📄 Factura PDF
+                            </button>
+                            <button onclick="downloadReport(${o.id}, 'rtf')" class="bg-slate-700 hover:bg-slate-800 text-white px-3 py-1.5 rounded">
+                                📝 Factura RTF
+                            </button>
+                            ${currentUser?.role === 'admin' ? `
+                            <button onclick="deleteOrder(${o.id})" class="bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1.5 rounded">
+                                🗑️ Eliminar
+                            </button>` : ''}
+                        </div>
+                    `;
+                    list.appendChild(card);
+                }
+            } catch (err) {
+                showAlert(err.message, true);
+            }
+        }
+
+        async function downloadReport(orderId, format) {
+            try {
+                const res = await apiFetch(`/orders/${orderId}/report?format=${format}`);
+                if (!res.ok) throw new Error('Error generando el reporte');
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `order_${orderId}_invoice.${format}`;
+                a.click();
+            } catch (err) {
+                showAlert(err.message, true);
+            }
+        }
+
+        async function deleteOrder(orderId) {
+            if (!confirm(`¿Seguro que deseas eliminar el pedido #${orderId}?`)) return;
+            try {
+                const res = await apiFetch(`/orders/${orderId}`, { method: 'DELETE' });
+                if (!res.ok) throw new Error('No se pudo eliminar el pedido');
+                showAlert(`Pedido #${orderId} eliminado`);
+                await loadOrders();
+            } catch (err) {
+                showAlert(err.message, true);
+            }
+        }
+
+        // Auto-inicio si ya hay token guardado
+        initSession();
+    </script>
+</body>
+</html>
