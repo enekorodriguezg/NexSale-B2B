@@ -1,7 +1,7 @@
 services:
   db:
     image: mysql:8.0
-    container_name: nexorder_mysql
+    container_name: nexsale_mysql
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
