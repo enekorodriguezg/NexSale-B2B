@@ -42,6 +42,8 @@ services:
     restart: always
     ports:
       - "80:80"
+    volumes:
+      - ./frontend:/usr/local/apache2/htdocs:ro
     depends_on:
       - nexsale_api
     networks:
