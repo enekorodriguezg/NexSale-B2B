@@ -44,7 +44,7 @@ Desarrollado para la asignatura *Advanced Programming Techniques*.
               │     │                                                    │          │
               │     └── sirve frontend/index.html                        ▼          │
               │                                                     MySQL :3306     │
-              └──────────────────────────────────────────────────────────────────────┘
+              └─────────────────────────────────────────────────────────────────────┘
 ```
 
 El código está organizado por capas:
@@ -111,7 +111,7 @@ Al arrancar, la API crea las tablas y carga tres usuarios de prueba (`admin`, `u
 | `POST` | `/orders` | admin, commercial |
 | `GET` | `/orders` | todos |
 | `DELETE` | `/orders/{id}` | admin |
-| `GET` | `/orders/{id}/report?format=pdf\|rtf` | — |
+| `GET` | `/orders/{id}/report?format=pdf\|rtf` | público (ver [Próximos pasos](#próximos-pasos)) |
 | `GET` | `/health` | público |
 
 ## Próximos pasos
