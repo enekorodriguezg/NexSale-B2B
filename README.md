@@ -1,5 +1,3 @@
-# NexSale-B2B
-
 **English** · [Español](README.es.md)
 
 > 🚧 **Work in progress.** Authentication and the core product and order flows already work; some endpoints are still being implemented (see [Roadmap](#roadmap)).
@@ -44,7 +42,7 @@ Developed for the *Advanced Programming Techniques* course.
             │     │                                                    │          │
             │     └── serves frontend/index.html                       ▼          │
             │                                                     MySQL :3306     │
-            └──────────────────────────────────────────────────────────────────────┘
+            └─────────────────────────────────────────────────────────────────────┘
 ```
 
 The code is organised in layers:
@@ -111,7 +109,7 @@ On startup the API creates the tables and seeds three demo users (`admin`, `user
 | `POST` | `/orders` | admin, commercial |
 | `GET` | `/orders` | all |
 | `DELETE` | `/orders/{id}` | admin |
-| `GET` | `/orders/{id}/report?format=pdf\|rtf` | — |
+| `GET` | `/orders/{id}/report?format=pdf\|rtf` | public (see [Roadmap](#roadmap)) |
 | `GET` | `/health` | public |
 
 ## Roadmap
