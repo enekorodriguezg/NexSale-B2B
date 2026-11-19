@@ -1,5 +1,6 @@
-from sqlalchemy import String, ForeignKey, LargeBinary, func
+from sqlalchemy import String, ForeignKey, func
 from sqlalchemy.orm import relationship, Mapped, mapped_column
+from sqlalchemy.dialects.mysql import MEDIUMBLOB
 from datetime import datetime, timezone
 
 from .database import Base
@@ -29,7 +30,7 @@ class Product(Base):
     category: Mapped[str] = mapped_column(String(50), nullable = False, index = True)
     base_price: Mapped[float] = mapped_column(nullable = False)
     stock: Mapped[int] = mapped_column(default = 0, nullable = False)
-    image: Mapped[bytes | None] = mapped_column(LargeBinary, nullable = True)
+    image: Mapped[bytes | None] = mapped_column(MEDIUMBLOB, nullable = True)
     order_items = relationship("OrderItem",back_populates = "product")
 
     def has_enough_stock(self, quantity: int) -> bool:

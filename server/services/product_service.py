@@ -93,6 +93,7 @@ def insert_image(product_id: int, image: bytes, content_type: str | None, db: Se
         raise
 
     except Exception as e:
+        print(repr(e))
         db.rollback()
         raise HTTPException(
             status_code = status.HTTP_500_INTERNAL_SERVER_ERROR,
