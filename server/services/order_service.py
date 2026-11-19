@@ -81,7 +81,7 @@ def create_order(db: Session, order_data: OrderCreate, user_id: int) -> Order:
         ) from e
 
 
-def get_orders(order_by: str, sort_order: str, db: Session, current_user: User) -> list[Order]:
+def get_orders(order_by: str, sort_order: str, customer: str | None, db: Session, current_user: User) -> list[Order]:
 
     allowed_columns: list[str] = ["id", "base_total", "created_at", "status"]
     if order_by not in allowed_columns:
@@ -99,10 +99,14 @@ def get_orders(order_by: str, sort_order: str, db: Session, current_user: User) 
         sort_criteria = sort_column.asc()
 
     if current_user.role == UserRole.COMMERCIAL:
-        stmt = select(Order).where(Order.user_id == current_user.id).order_by(sort_criteria)
+        stmt = select(Order).where(Order.user_id == current_user.id)
     else:
-        stmt = select(Order).order_by(sort_criteria)
-        
+        stmt = select(Order)
+
+    if customer is not None:
+        stmt = stmt.where(Order.customer_name.contains(customer))
+
+    stmt = stmt.order_by(sort_criteria)
     orders: list[Order] = list(db.scalars(stmt).all())
 
     return orders

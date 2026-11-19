@@ -32,9 +32,9 @@ def get_all_products(order_by: str, sort_order: str, category: str | None, db: S
 
     stmt = select(Product)
     if category is not None:
-        stmt.where(Product.category == category)
+        stmt = stmt.where(Product.category == category)
         
-    stmt.order_by(sort_criteria)
+    stmt = stmt.order_by(sort_criteria)
     return list(db.scalars(stmt).all())
 
 def create_product(product_in: ProductCreate, db: Session) -> Product:
