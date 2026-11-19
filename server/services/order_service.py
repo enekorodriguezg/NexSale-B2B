@@ -98,7 +98,7 @@ def get_orders(order_by: str, sort_order: str, db: Session, current_user: User) 
     else:
         sort_criteria = sort_column.asc()
 
-    if current_user.role is UserRole.COMMERCIAL:
+    if current_user.role == UserRole.COMMERCIAL:
         stmt = select(Order).where(Order.user_id == current_user.id).order_by(sort_criteria)
     else:
         stmt = select(Order).order_by(sort_criteria)

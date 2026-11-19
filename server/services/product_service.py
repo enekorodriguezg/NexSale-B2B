@@ -14,7 +14,7 @@ def get_product_by_id(product_id: int, db: Session) -> Product | None:
 
 ### --------------------------------------------------###
 
-def get_all_products(order_by, sort_order, db: Session) -> list[Product]:
+def get_all_products(order_by: str, sort_order: str, category: str | None, db: Session) -> list[Product]:
 
     allowed_columns : list[str] = ["id", "name", "base_price", "stock"]
     if order_by not in allowed_columns:
@@ -30,7 +30,11 @@ def get_all_products(order_by, sort_order, db: Session) -> list[Product]:
     else:
         sort_criteria = sort_column.asc()
 
-    stmt = select(Product).order_by(sort_criteria)
+    stmt = select(Product)
+    if category is not None:
+        stmt.where(Product.category == category)
+        
+    stmt.order_by(sort_criteria)
     return list(db.scalars(stmt).all())
 
 def create_product(product_in: ProductCreate, db: Session) -> Product:
