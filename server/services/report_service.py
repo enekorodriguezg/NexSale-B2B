@@ -6,6 +6,7 @@ from fpdf import FPDF
 import logging
 
 from server.models import Order
+from server.core.app_settings import app_settings
 
 ### --------------------------------------------------###
 
@@ -66,6 +67,9 @@ def create_pdf_report(order: Order) -> bytearray:
     pdf = FPDF()
     pdf.add_page()
 
+    pdf.set_font("helvetica", "B", 12)
+    pdf.cell(0, 8, app_settings.company_name, new_x="LMARGIN", new_y="NEXT")
+
     pdf.set_font("helvetica", "B", 16)
     pdf.cell(0, 10, f"Order Invoice #Order ID: {order.id}", new_x="LMARGIN", new_y="NEXT", align="C")
     pdf.ln(5) 
@@ -96,6 +100,7 @@ def create_pdf_report(order: Order) -> bytearray:
     pdf.set_font("helvetica", "B", 12)
     pdf.cell(120, 10, "Order Total:", align="R")
     pdf.cell(0, 10, f"{total_amount:.2f}", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 10, f"{total_amount:.2f} {app_settings.currency}", new_x="LMARGIN", new_y="NEXT")
 
     return pdf.output()
 
@@ -103,6 +108,7 @@ def create_rtf_report(order: Order):
     rtf_lines = [
             r"{\rtf1\ansi\ansicpg1252\deff0\nouicompat\deflang1033{\fonttbl{\f0\fnil\fcharset0 Helvetica;}}",
             r"\f0\fs24\pard",
+            rf"{{\b {app_settings.company_name}\par}}",
             rf"{{\b Order Invoice #{order.id}\par}}",
             rf"Customer ID: {order.user_id}\par",
             r"\par",
@@ -118,7 +124,7 @@ def create_rtf_report(order: Order):
         rtf_lines.append(line)
         
     rtf_lines.append(r"\par")
-    rtf_lines.append(rf"{{\b Order Total: {total_amount:.2f}\par}}")
+    rtf_lines.append(rf"{{\b Order Total: {total_amount:.2f} {app_settings.currency}\par}}")
     rtf_lines.append(r"}")
     rtf_content = "\n".join(rtf_lines)
 

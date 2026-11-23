@@ -4,12 +4,15 @@ import logging
 from .routers import orders, products, auth, users
 from .database import Base, engine
 from scripts.seed_users import seed_database
+from .core.app_settings import app_settings
 
 ### --------------------------------------------------###
 
 logging.basicConfig(level = logging.INFO, format = "%(asctime)s %(levelname)s %(name)s: %(message)s")
 Base.metadata.create_all(bind = engine)
 seed_database()
+
+print("INI cargado:", app_settings._config.get("company", "name"), flush = True)
 
 app = FastAPI(
     title = "NexSale-B2B",

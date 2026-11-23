@@ -1,5 +1,7 @@
 from pydantic import BaseModel, Field, ConfigDict, computed_field
 
+from server.core.app_settings import app_settings
+
 ### --------------------------------------------------###
 
 class ProductBase(BaseModel):
@@ -29,7 +31,7 @@ class ProductResponse(ProductBase):
     def stock_status(self) -> str:
         if self.stock == 0:
             return "OUT_OF_STOCK"
-        elif self.stock < 10:
+        elif self.stock < app_settings.low_stock_threshold:
             return "LOW_STOCK"
         return "IN_STOCK"
 
