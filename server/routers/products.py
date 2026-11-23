@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from server.database import get_db
 from server.models import Product, User
 from server.services import product_service
-from server.schemas.product_schema import ProductCreate, ProductResponse
+from server.schemas.product_schema import ProductCreate, ProductResponse, ProductUpdate
 from server.api.deps import RoleChecker
 from server.constants import UserRole
 
@@ -24,11 +24,12 @@ def create_product(product_in: ProductCreate, db: Session = Depends(get_db), cur
 
 @router.delete("/{product_id}", status_code = status.HTTP_204_NO_CONTENT) #TODO
 def delete_product(product_id: int, db: Session = Depends(get_db), current_user: User = Depends(RoleChecker([UserRole.ADMIN, UserRole.WAREHOUSE]))):
-    pass
+    product_service.delete_product(product_id = product_id, db = db)
 
-@router.put("/{product_id}", status_code = status.HTTP_200_OK) #TODO
-def update_product(product_id: int, db: Session = Depends(get_db), current_user: User = Depends(RoleChecker([UserRole.ADMIN, UserRole.WAREHOUSE]))):
-    pass
+@router.put("/{product_id}", response_model = ProductResponse, status_code = status.HTTP_200_OK) #TODO
+def update_product(product_id: int, product_in: ProductUpdate, db: Session = Depends(get_db), current_user: User = Depends(RoleChecker([UserRole.ADMIN, UserRole.WAREHOUSE]))):
+    product = product_service.update_product(product_id = product_id, product_in = product_in, db = db)
+    return product
 
 @router.put("/{product_id}/image", response_model = ProductResponse, status_code = status.HTTP_200_OK)
 async def insert_image(product_id: int, file: UploadFile, db: Session = Depends(get_db), current_user: User = Depends(RoleChecker([UserRole.ADMIN, UserRole.WAREHOUSE]))):
