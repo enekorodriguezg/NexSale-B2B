@@ -120,6 +120,11 @@ def delete_order(order_id: int, db: Session) -> None:
                 status_code = status.HTTP_404_NOT_FOUND,
                 detail = f"Order with ID {order_id} not found"
             )
+
+        for item in sorted(order.items, key = lambda x: x.product_id):
+            stmt = select(Product).where(Product.id == item.product_id).with_for_update()
+            product = db.execute(stmt).scalar_one()
+            product.increase_stock(item.quantity)
         
         db.delete(order)
         db.commit()

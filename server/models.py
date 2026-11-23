@@ -39,6 +39,9 @@ class Product(Base):
     def reduce_stock(self, quantity: int) -> None:
         self.stock -= quantity
 
+    def increase_stock(self, quantity: int) -> None:
+        self.stock += quantity
+
 
 
 class Order(Base):
