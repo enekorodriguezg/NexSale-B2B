@@ -121,7 +121,7 @@ def delete_order(order_id: int, db: Session) -> None:
                 detail = f"Order with ID {order_id} not found"
             )
 
-        if order.status != OrderStatus.CANCELLED:
+        if order.status not in (OrderStatus.CANCELLED, OrderStatus.COMPLETED):
             for item in sorted(order.items, key = lambda x: x.product_id):
                 stmt = select(Product).where(Product.id == item.product_id).with_for_update()
                 product = db.execute(stmt).scalar_one()
@@ -155,17 +155,17 @@ def update_order(order_id: int, order_in: OrderUpdate, db: Session, current_user
                 detail = "You can only modify your own orders"
             )
 
-        if order.status == OrderStatus.CANCELLED:
+        if order.status in (OrderStatus.CANCELLED, OrderStatus.COMPLETED):
             raise HTTPException(
                 status_code = status.HTTP_409_CONFLICT,
-                detail = "Cancelled orders can not be modified"
+                detail = "Cancelled or completed orders can not be modified"
             )
 
         if order_in.customer_name is not None:
             order.customer_name = order_in.customer_name
 
         if order_in.customer_tax_id is not None:
-            order.customer_tax_id = order.customer_tax_id
+            order.customer_tax_id = order_in.customer_tax_id
 
         if order_in.status is not None:
             if order_in.status == OrderStatus.CANCELLED:

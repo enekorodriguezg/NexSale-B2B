@@ -53,7 +53,7 @@ class Order(Base):
     customer_name: Mapped[str] = mapped_column(String(100), nullable = False)
     customer_tax_id: Mapped[str] = mapped_column(String(20), nullable = False)
     created_at: Mapped[datetime] = mapped_column(server_default = func.now(), nullable = False)
-    status: Mapped[str] = mapped_column(String(20), default = "Pending", nullable = False)
+    status: Mapped[str] = mapped_column(String(20), default = "pending", nullable = False)
     base_total: Mapped[float] = mapped_column(default = 0.0, nullable = False)
     items: Mapped[list["OrderItem"]] = relationship("OrderItem", back_populates = "order", cascade = "all,delete-orphan")
     user: Mapped["User"] = relationship("User", back_populates = "orders")
