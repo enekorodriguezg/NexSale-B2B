@@ -3,7 +3,7 @@ from sqlalchemy import select
 from fastapi import Depends, HTTPException, status
 
 from server.models import Product
-from server.schemas.product_schema import ProductCreate, ProductResponse
+from server.schemas.product_schema import ProductCreate, ProductUpdate
 from server.database import get_db
 
 ### --------------------------------------------------###
@@ -126,3 +126,38 @@ def get_product_image(product_id: int, db: Session) -> bytes:
             status_code = status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail = "An error occurred"
         )
+
+    def update_product(product_id: int, product_in: ProductUpdate, db, Session):
+        try:
+            product = get_product_by_id(product_id = product_id)
+            if not product:
+                raise HTTPExeption(
+                    status_code = status.HTTP_404_NOT_FOUND,
+                    detail = f"Product with product ID {product_id} not found"
+                )
+            changes = product_in.model_dump(exclude_none = True)
+
+            if "sku" in changes and changes["sku"] != product.sku:
+                stmt = select(Product).where(Product.sku == changes[sku])
+                if db.execute(stmt).scalar_one_or_none():
+                    raise HTTPException(
+                        status_code = status.HTTP_400_BAD_REQUEST,
+                        detail = f"Product with sku {changes['sku']} already exists"
+                    )
+
+            for field, value in changes.items():
+                setattr(product, field, value)
+
+            db.commit()
+            db.refresh(product)
+            return product
+
+        except HTTPException:
+            db.rollback()
+            raise
+        except Exception as e:
+            db.rollback()
+            raise HTTPException(
+                status_code = status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail = "An error occurred"
+            ) from e
