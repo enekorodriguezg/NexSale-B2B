@@ -112,7 +112,7 @@ def get_orders(order_by: str, sort_order: str, customer: str | None, db: Session
     return orders
 
 
-def delete_order(order_id: int, db: Session) -> Order:
+def delete_order(order_id: int, db: Session) -> None:
     try:
         order = get_order_by_id(order_id = order_id, db = db)
         if not order:
@@ -123,7 +123,6 @@ def delete_order(order_id: int, db: Session) -> Order:
         
         db.delete(order)
         db.commit()
-        return order
 
     except HTTPException:
         db.rollback()
