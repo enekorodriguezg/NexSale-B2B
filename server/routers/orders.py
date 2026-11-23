@@ -23,7 +23,7 @@ def get_orders(order_by: str = "id", sort_order: str = "asc", customer: str | No
     return orders
     
 
-@router.delete("/{order_id}", status_code = status.HTTP_200_OK)
+@router.delete("/{order_id}", status_code = status.HTTP_204_NO_CONTENT)
 def delete_order(order_id: int, db: Session = Depends(get_db), current_user: User = Depends(RoleChecker([UserRole.ADMIN]))):
     order_service.delete_order(order_id = order_id, db = db)
 
