@@ -1,7 +1,7 @@
 from sqlalchemy import String, ForeignKey, func
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from sqlalchemy.dialects.mysql import MEDIUMBLOB
-from datetime import datetime, timezone
+from datetime import datetime
 
 from .database import Base
 
@@ -16,7 +16,7 @@ class User(Base):
     hashed_password: Mapped[str] = mapped_column(String(255), nullable = False)
     salt: Mapped[str] = mapped_column(String(64), nullable = False)
     role: Mapped[str] = mapped_column(String(20), default = "commercial", nullable = False)
-    orders = relationship("Order", back_populates = "user") #Relationship to order
+    orders: Mapped[list["Order"]] = relationship("Order", back_populates = "user") #Relationship to order
 
 
 class Product(Base):
@@ -31,7 +31,7 @@ class Product(Base):
     base_price: Mapped[float] = mapped_column(nullable = False)
     stock: Mapped[int] = mapped_column(default = 0, nullable = False)
     image: Mapped[bytes | None] = mapped_column(MEDIUMBLOB, nullable = True)
-    order_items = relationship("OrderItem",back_populates = "product")
+    order_items: Mapped[list["OrderItem"]] = relationship("OrderItem", back_populates = "product")
 
     def has_enough_stock(self, quantity: int) -> bool:
         return self.stock >= quantity
@@ -55,8 +55,8 @@ class Order(Base):
     created_at: Mapped[datetime] = mapped_column(server_default = func.now(), nullable = False)
     status: Mapped[str] = mapped_column(String(20), default = "Pending", nullable = False)
     base_total: Mapped[float] = mapped_column(default = 0.0, nullable = False)
-    items = relationship("OrderItem", back_populates = "order", cascade = "all,delete-orphan")
-    user = relationship("User", back_populates = "orders")
+    items: Mapped[list["OrderItem"]] = relationship("OrderItem", back_populates = "order", cascade = "all,delete-orphan")
+    user: Mapped["User"] = relationship("User", back_populates = "orders")
 
     def calculate_total(self) -> float:
         new_total = 0.0
@@ -79,8 +79,8 @@ class OrderItem(Base):
     product_id: Mapped[int] = mapped_column(ForeignKey("products.id"), nullable = False)
     quantity: Mapped[int] = mapped_column(default = 1, nullable = False)
     unit_price: Mapped[float] = mapped_column(default = 0.0, nullable = False)
-    order = relationship("Order", back_populates = "items")
-    product = relationship("Product", back_populates = "order_items")
+    order: Mapped["Order"] = relationship("Order", back_populates = "items")
+    product: Mapped["Product"] = relationship("Product", back_populates = "order_items")
 
     def is_product(self, id: int) -> bool:
         return id == self.product_id
