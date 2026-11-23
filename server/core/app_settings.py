@@ -10,7 +10,7 @@ SETTINGS_FILE = Path(os.getenv("SETTINGS_FILE_PATH", "config/settings.ini"))
 DEFAULT_SETTINGS = {
     "company": {
         "name": "NexSale B2B d.o.o",
-        "curerncy": "EUR",
+        "currency": "EUR",
     },
     "inventory": {
         "low_stock_threshold": "10",
