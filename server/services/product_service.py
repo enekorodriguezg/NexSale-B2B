@@ -185,6 +185,7 @@ def delete_product(product_id: int, db: Session) -> None:
         raise
     
     except Exception as e:
+        db.rollback()
         raise HTTPException(
             status_code = status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail = "An error occurred"
