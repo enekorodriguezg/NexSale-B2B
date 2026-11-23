@@ -127,7 +127,7 @@ def get_product_image(product_id: int, db: Session) -> bytes:
             detail = "An error occurred"
         )
 
-    def update_product(product_id: int, product_in: ProductUpdate, db, Session):
+    def update_product(product_id: int, product_in: ProductUpdate, db, Session) -> Product:
         try:
             product = get_product_by_id(product_id = product_id)
             if not product:
@@ -157,6 +157,34 @@ def get_product_image(product_id: int, db: Session) -> bytes:
             raise
         except Exception as e:
             db.rollback()
+            raise HTTPException(
+                status_code = status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail = "An error occurred"
+            ) from e
+
+    def delete_product(product_id: int, db: Session) -> None:
+        try:
+            product = get_product_by_id(product_id = product_id)
+            if not product:
+                raise HTTPException(
+                    status_code = status.HTTP_404_NOT_FOUND,
+                    detail = f"Product with product ID {product_id} not found"
+                )
+            
+            if product.order_items:
+                raise HTTPException(
+                    status_code = status.HTTP_409_CONFLICT,
+                    detail = f"Product with ID {product_id} cannot be deleted because it appears in existing orders"
+                )
+
+            db.delete(product)
+            db.commit()
+
+        except HTTPException:
+            db.rollback()
+            raise
+        
+        except Exception as e:
             raise HTTPException(
                 status_code = status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail = "An error occurred"
