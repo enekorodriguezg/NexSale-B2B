@@ -1,5 +1,5 @@
 from .product_schema import ProductBase, ProductCreate, ProductResponse
-from .user_schema import UserBase, UserCreate, UserResponse
+from .user_schema import UserBase, UserCreate, UserResponse, UserUpdate
 from .order_item_schema import OrderItemCreate, OrderItemResponse
 from .order_schema import OrderBase, OrderCreate, OrderResponse
 
@@ -17,4 +17,5 @@ __all__ = [
     "OrderBase",
     "OrderCreate",
     "OrderResponse",
+    "UserUpdate",
 ]
