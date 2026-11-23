@@ -127,65 +127,65 @@ def get_product_image(product_id: int, db: Session) -> bytes:
             detail = "An error occurred"
         )
 
-    def update_product(product_id: int, product_in: ProductUpdate, db, Session) -> Product:
-        try:
-            product = get_product_by_id(product_id = product_id)
-            if not product:
-                raise HTTPExeption(
-                    status_code = status.HTTP_404_NOT_FOUND,
-                    detail = f"Product with product ID {product_id} not found"
-                )
-            changes = product_in.model_dump(exclude_none = True)
-
-            if "sku" in changes and changes["sku"] != product.sku:
-                stmt = select(Product).where(Product.sku == changes[sku])
-                if db.execute(stmt).scalar_one_or_none():
-                    raise HTTPException(
-                        status_code = status.HTTP_400_BAD_REQUEST,
-                        detail = f"Product with sku {changes['sku']} already exists"
-                    )
-
-            for field, value in changes.items():
-                setattr(product, field, value)
-
-            db.commit()
-            db.refresh(product)
-            return product
-
-        except HTTPException:
-            db.rollback()
-            raise
-        except Exception as e:
-            db.rollback()
+def update_product(product_id: int, product_in: ProductUpdate, db, Session) -> Product:
+    try:
+        product = get_product_by_id(product_id = product_id, db = db)
+        if not product:
             raise HTTPException(
-                status_code = status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail = "An error occurred"
-            ) from e
+                status_code = status.HTTP_404_NOT_FOUND,
+                detail = f"Product with product ID {product_id} not found"
+            )
+        changes = product_in.model_dump(exclude_none = True)
 
-    def delete_product(product_id: int, db: Session) -> None:
-        try:
-            product = get_product_by_id(product_id = product_id)
-            if not product:
+        if "sku" in changes and changes["sku"] != product.sku:
+            stmt = select(Product).where(Product.sku == changes["sku"])
+            if db.execute(stmt).scalar_one_or_none():
                 raise HTTPException(
-                    status_code = status.HTTP_404_NOT_FOUND,
-                    detail = f"Product with product ID {product_id} not found"
-                )
-            
-            if product.order_items:
-                raise HTTPException(
-                    status_code = status.HTTP_409_CONFLICT,
-                    detail = f"Product with ID {product_id} cannot be deleted because it appears in existing orders"
+                    status_code = status.HTTP_400_BAD_REQUEST,
+                    detail = f"Product with sku {changes['sku']} already exists"
                 )
 
-            db.delete(product)
-            db.commit()
+        for field, value in changes.items():
+            setattr(product, field, value)
 
-        except HTTPException:
-            db.rollback()
-            raise
+        db.commit()
+        db.refresh(product)
+        return product
+
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code = status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail = "An error occurred"
+        ) from e
+
+def delete_product(product_id: int, db: Session) -> None:
+    try:
+        product = get_product_by_id(product_id = product_id, db = db)
+        if not product:
+            raise HTTPException(
+                status_code = status.HTTP_404_NOT_FOUND,
+                detail = f"Product with product ID {product_id} not found"
+            )
         
-        except Exception as e:
+        if product.order_items:
             raise HTTPException(
-                status_code = status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail = "An error occurred"
-            ) from e
+                status_code = status.HTTP_409_CONFLICT,
+                detail = f"Product with ID {product_id} cannot be deleted because it appears in existing orders"
+            )
+
+        db.delete(product)
+        db.commit()
+
+    except HTTPException:
+        db.rollback()
+        raise
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code = status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail = "An error occurred"
+        ) from e
