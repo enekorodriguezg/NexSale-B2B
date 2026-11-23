@@ -13,7 +13,7 @@ def get_user_by_id(user_id: int, db: Session) -> User | None:
 ### --------------------------------------------------###
 
 def get_all_users(order_by: str, sort_order: str, db: Session) -> list[User]:
-    allowed_columns : list[str] = ["id", "name", "base_price", "stock"]
+    allowed_columns : list[str] = ["id", "username", "role"]
     if order_by not in allowed_columns:
         raise HTTPException(
             status_code = status.HTTP_400_BAD_REQUEST,
