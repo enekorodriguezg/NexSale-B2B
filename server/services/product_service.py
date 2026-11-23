@@ -127,7 +127,7 @@ def get_product_image(product_id: int, db: Session) -> bytes:
             detail = "An error occurred"
         )
 
-def update_product(product_id: int, product_in: ProductUpdate, db, Session) -> Product:
+def update_product(product_id: int, product_in: ProductUpdate, db: Session) -> Product:
     try:
         product = get_product_by_id(product_id = product_id, db = db)
         if not product:
