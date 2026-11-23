@@ -2,7 +2,7 @@ from fastapi import APIRouter, status, Depends, Response
 from sqlalchemy.orm import Session
 
 from server.services import order_service, report_service
-from server.schemas.order_schema import OrderCreate, OrderResponse
+from server.schemas.order_schema import OrderCreate, OrderResponse, OrderUpdate
 from server.database import get_db
 from server.models import Order, User
 from server.constants import UserRole
@@ -21,15 +21,15 @@ def create_order(order_in: OrderCreate, db: Session = Depends(get_db), current_u
 def get_orders(order_by: str = "id", sort_order: str = "asc", customer: str | None = None, db: Session = Depends(get_db), current_user: User = Depends(RoleChecker([UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.WAREHOUSE]))) -> list[Order]:
     orders: list[Order] = order_service.get_orders(order_by = order_by, sort_order = sort_order, customer = customer, db = db, current_user = current_user)
     return orders
-    
 
 @router.delete("/{order_id}", status_code = status.HTTP_204_NO_CONTENT)
 def delete_order(order_id: int, db: Session = Depends(get_db), current_user: User = Depends(RoleChecker([UserRole.ADMIN]))):
     order_service.delete_order(order_id = order_id, db = db)
 
-@router.put("") #TODO
-def update_order():
-    pass
+@router.put("/{order_id}", response_model = OrderResponse, status_code = status.HTTP_200_OK)
+def update_order(order_id: int, order_in: OrderUpdate, db: Session = Depends(get_db), current_user: User = Depends(RoleChecker([UserRole.ADMIN, UserRole.COMMERCIAL]))):
+    order = order_service.update_order(order_id = order_id, order_in = order_in, db = db, current_user = current_user)
+    return order
 
 @router.get("/{order_id}/report", status_code = status.HTTP_200_OK)
 def create_report(order_id: int, format: str = "pdf", db: Session = Depends(get_db)):

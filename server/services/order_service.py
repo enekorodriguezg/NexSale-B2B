@@ -3,9 +3,9 @@ from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 from typing import Sequence
 
-from server.schemas.order_schema import OrderCreate
+from server.schemas.order_schema import OrderCreate, OrderUpdate
 from server.models import Order, Product, User, OrderItem
-from server.constants import UserRole
+from server.constants import UserRole, OrderStatus
 
 ### --------------------------------------------------###
 
@@ -121,11 +121,12 @@ def delete_order(order_id: int, db: Session) -> None:
                 detail = f"Order with ID {order_id} not found"
             )
 
-        for item in sorted(order.items, key = lambda x: x.product_id):
-            stmt = select(Product).where(Product.id == item.product_id).with_for_update()
-            product = db.execute(stmt).scalar_one()
-            product.increase_stock(item.quantity)
-        
+        if order.status != OrderStatus.CANCELLED:
+            for item in sorted(order.items, key = lambda x: x.product_id):
+                stmt = select(Product).where(Product.id == item.product_id).with_for_update()
+                product = db.execute(stmt).scalar_one()
+                product.increase_stock(item.quantity)
+            
         db.delete(order)
         db.commit()
 
@@ -138,7 +139,60 @@ def delete_order(order_id: int, db: Session) -> None:
             status_code = status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail = "An error occurred"
         )
-    
+
+def update_order(order_id: int, order_in: OrderUpdate, db: Session, current_user: User) -> Order:
+    try:
+        order = get_order_by_id(order_id = order_id, db = db)
+        if not order:
+            raise HTTPException(
+                status_code = status.HTTP_404_NOT_FOUND,
+                detail = f"Order with order ID {order_id} not found"
+            )
+
+        if current_user.role == UserRole.COMMERCIAL and order.user_id != current_user.id:
+            raise HTTPException(
+                status_code = status.HTTP_403_FORBIDDEN,
+                detail = "You can only modify your own orders"
+            )
+
+        if order.status == OrderStatus.CANCELLED:
+            raise HTTPException(
+                status_code = status.HTTP_409_CONFLICT,
+                detail = "Cancelled orders can not be modified"
+            )
+
+        if order_in.customer_name is not None:
+            order.customer_name = order_in.customer_name
+
+        if order_in.customer_tax_id is not None:
+            order.customer_tax_id = order.customer_tax_id
+
+        if order_in.status is not None:
+            if order_in.status == OrderStatus.CANCELLED:
+                for item in sorted(order.items, key = lambda x: x.product_id):
+                    stmt = select(Product).where(Product.id == item.product_id).with_for_update()
+                    product = db.execute(stmt).scalar_one()
+                    product.increase_stock(item.quantity)
+
+            order.status = order_in.status.value
+
+        db.commit()
+        db.refresh(order)
+        return order
+
+    except HTTPException:
+        db.rollback()
+        raise
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code = status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail = "An error occurred"
+        ) from e
+        
+
+
 
 
 

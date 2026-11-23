@@ -2,6 +2,7 @@ from pydantic import BaseModel, Field, ConfigDict, field_validator, computed_fie
 from stdnum.hr import oib
 
 from .order_item_schema import OrderItemCreate, OrderItemResponse
+from server.constants import OrderStatus
 
 ### --------------------------------------------------###
 
@@ -11,8 +12,8 @@ class OrderBase(BaseModel):
 
     @field_validator("customer_tax_id")
     @classmethod
-    def validate_oib(cls, value: str) -> str:
-        if not oib.is_valid(value):
+    def validate_oib(cls, value: str | None) -> str | None:
+        if value is not None and not oib.is_valid(value):
             raise ValueError("Invalid Croatian Tax ID (OIB)")
         return value
 
@@ -23,6 +24,7 @@ class OrderCreate(OrderBase):
 class OrderResponse(OrderBase):
     id: int
     user_id: int
+    status: str
     items: list[OrderItemResponse]
 
     model_config = ConfigDict(from_attributes=True)
@@ -36,7 +38,18 @@ class OrderResponse(OrderBase):
             order_price += item.total_price
 
         return order_price
-    
+
+class OrderUpdate(BaseModel):
+    customer_name: str | None = Field(default = None, min_length = 1)
+    customer_tax_id: str | None = Field(default = None, min_length = 11, max_length = 11)
+    status: OrderStatus | None = None
+
+    @field_validator("customer_tax_id")
+    @classmethod
+    def validate_oib(cls, value: str | None) -> str | None:
+        if value is not None and not oib.is_valid(value):
+            raise ValueError("Invalid Croatian Tax ID (OIB)")
+        return value
 
    
 
