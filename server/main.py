@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+import logging
 
 from .routers import orders, products, auth
 from .database import Base, engine
@@ -6,6 +7,7 @@ from scripts.seed_users import seed_database
 
 ### --------------------------------------------------###
 
+logging.basicConfig(level = logging.INFO, format = "%(asctime)s %(levelname)s %(name)s: %(message)s")
 Base.metadata.create_all(bind = engine)
 seed_database()
 
