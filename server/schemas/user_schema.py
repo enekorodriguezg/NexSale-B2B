@@ -13,7 +13,7 @@ class UserCreate(UserBase):
 
 class UserResponse(UserBase):
     id: int
-    is_active = bool
+    is_active: bool
 
     model_config = ConfigDict(from_attributes = True)
 

@@ -50,6 +50,7 @@ def create_user(user_in: UserCreate, db: Session) -> User:
         new_user: User = User(
             username = user_in.username,
             role = user_in.role.value,
+            salt = salt,
             hashed_password = hashed_password
         )
 
@@ -136,6 +137,7 @@ def update_user(user_id: int, user_in: UserUpdate, db: Session, current_user: Us
                     status_code = status.HTTP_409_CONFLICT,
                     detail = "You can not deactivate your own account"
                 )
+            user.is_active = user_in.is_active
 
         if user_in.password is not None:
             user.salt = generate_salt()

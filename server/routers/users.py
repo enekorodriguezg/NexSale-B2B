@@ -17,7 +17,7 @@ def get_all_users(order_by: str = "id", sort_order: str = "asc", db: Session = D
     users: list[User] = user_service.get_all_users(order_by = order_by, sort_order = sort_order, db = db)
     return users
 
-@router.post("", response_model = UserResponse, status_code = status.HTTP_200_OK)
+@router.post("", response_model = UserResponse, status_code = status.HTTP_201_CREATED)
 def create_user(user_in: UserCreate, db: Session = Depends(get_db), current_user: User = Depends(RoleChecker([UserRole.ADMIN]))):
     user = user_service.create_user(user_in = user_in, db = db)
     return user
