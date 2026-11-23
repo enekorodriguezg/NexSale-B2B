@@ -26,41 +26,41 @@ def create_report(order_id: int, format: str, db: Session):
         with active_reports_lock:
             active_reports += 1
             current = active_reports
-            logger.info(f"Generating report for order {order_id} (active: {current}/{MAX_CONCURRENT_REPORTS})")
-            try: 
-                stmt = select(Order).where(Order.id == order_id)
-                order: Order = db.execute(stmt).scalar_one_or_none()
-                
-                if not order:
-                    raise HTTPException(
-                        status_code = status.HTTP_404_NOT_FOUND,
-                        detail = f"Order with ID {order_id} not found"
-                    )
-                
-                if format == "pdf":
-                    file_bytes = create_pdf_report(order = order)
-                elif format == "rtf":
-                    file_bytes = create_rtf_report(order = order)
-                else:
-                    raise HTTPException(
-                        status_code = status.HTTP_400_BAD_REQUEST,
-                        detail = "Invalid report format"
-                    )
-
-                return file_bytes, media_type, file_extension
-
-            except HTTPException:
-                raise
-
-            except Exception as e:
+        logger.info(f"Generating report for order {order_id} (active: {current}/{MAX_CONCURRENT_REPORTS})")
+        try: 
+            stmt = select(Order).where(Order.id == order_id)
+            order: Order = db.execute(stmt).scalar_one_or_none()
+            
+            if not order:
                 raise HTTPException(
-                    status_code = status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail = "An unexpected error occured during report generation"
-                ) from e
+                    status_code = status.HTTP_404_NOT_FOUND,
+                    detail = f"Order with ID {order_id} not found"
+                )
+            
+            if format == "pdf":
+                file_bytes = create_pdf_report(order = order)
+            elif format == "rtf":
+                file_bytes = create_rtf_report(order = order)
+            else:
+                raise HTTPException(
+                    status_code = status.HTTP_400_BAD_REQUEST,
+                    detail = "Invalid report format"
+                )
 
-            finally:
-                with active_reports_lock:
-                    active_reports -= 1
+            return file_bytes, media_type, file_extension
+
+        except HTTPException:
+            raise
+
+        except Exception as e:
+            raise HTTPException(
+                status_code = status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail = "An unexpected error occured during report generation"
+            ) from e
+
+        finally:
+            with active_reports_lock:
+                active_reports -= 1
 
 def create_pdf_report(order: Order) -> bytearray:
     pdf = FPDF()
