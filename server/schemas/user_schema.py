@@ -13,6 +13,7 @@ class UserCreate(UserBase):
 
 class UserResponse(UserBase):
     id: int
+    is_active = bool
 
     model_config = ConfigDict(from_attributes = True)
 
@@ -20,4 +21,5 @@ class UserUpdate(BaseModel):
     username: str | None = Field(default = None, min_length = 5, max_length = 50)
     role: UserRole | None = None
     password: str | None = Field(default = None, min_length = 6)
+    is_active: bool | None = None
     

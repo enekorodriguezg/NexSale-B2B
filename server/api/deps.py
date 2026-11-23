@@ -39,7 +39,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     stmt = select(User).where(User.username == token_data.username) 
     user = db.execute(stmt).scalar_one_or_none()
 
-    if not user:
+    if not user or not user.is_active:
         raise credentials_exception
 
     return user
