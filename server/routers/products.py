@@ -22,11 +22,11 @@ def create_product(product_in: ProductCreate, db: Session = Depends(get_db), cur
     created_product = product_service.create_product(product_in = product_in, db = db)
     return created_product
 
-@router.delete("/{product_id}", status_code = status.HTTP_204_NO_CONTENT) #TODO
+@router.delete("/{product_id}", status_code = status.HTTP_204_NO_CONTENT)
 def delete_product(product_id: int, db: Session = Depends(get_db), current_user: User = Depends(RoleChecker([UserRole.ADMIN, UserRole.WAREHOUSE]))):
     product_service.delete_product(product_id = product_id, db = db)
 
-@router.put("/{product_id}", response_model = ProductResponse, status_code = status.HTTP_200_OK) #TODO
+@router.put("/{product_id}", response_model = ProductResponse, status_code = status.HTTP_200_OK)
 def update_product(product_id: int, product_in: ProductUpdate, db: Session = Depends(get_db), current_user: User = Depends(RoleChecker([UserRole.ADMIN, UserRole.WAREHOUSE]))):
     product = product_service.update_product(product_id = product_id, product_in = product_in, db = db)
     return product
