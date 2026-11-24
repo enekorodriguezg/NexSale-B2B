@@ -2,6 +2,7 @@ import os
 from dotenv import load_dotenv
 import base64
 import binascii
+from pathlib import Path
 
 ### --------------------------------------------------###
 
@@ -23,3 +24,7 @@ except binascii.Error as e:
 
 if len(AES_KEY) != 32:
     raise RuntimeError(f"AES_KEY must be 32 bytes (AES-256), got {len(AES_KEY)}")
+
+RSA_KEYS_DIR: Path = Path(os.getenv("RSA_KEYS_DIR", "keys"))
+RSA_PRIVATE_KEY_FILE: Path = RSA_KEYS_DIR / "private_key.pem"
+RSA_PUBLIC_KEY_FILE: Path = RSA_KEYS_DIR / "public_key.pem"
