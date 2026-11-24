@@ -1,12 +1,29 @@
+from datetime import datetime
+
 from sqlalchemy import String, ForeignKey, func
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from sqlalchemy.dialects.mysql import MEDIUMBLOB
-from datetime import datetime
+from sqlalchemy.types import TypeDecorator
 
 from .database import Base
 from .constants import OrderStatus
+from server.core.crypto import encrypt_text, decrypt_text
 
 ### --------------------------------------------------###
+
+class EncryptedString(TypeDecorator):
+    impl = String
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return None
+        return encrypt_text(value)
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return None
+        return decrypt_text(value)
 
 class User(Base):
 
@@ -53,7 +70,7 @@ class Order(Base):
     id: Mapped[int] = mapped_column(primary_key = True, index = True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     customer_name: Mapped[str] = mapped_column(String(100), nullable = False)
-    customer_tax_id: Mapped[str] = mapped_column(String(20), nullable = False)
+    customer_tax_id: Mapped[str] = mapped_column(EncryptedString(255), nullable = False)
     created_at: Mapped[datetime] = mapped_column(server_default = func.now(), nullable = False)
     status: Mapped[str] = mapped_column(String(20), default = OrderStatus.PENDING.value, nullable = False)
     base_total: Mapped[float] = mapped_column(default = 0.0, nullable = False)
