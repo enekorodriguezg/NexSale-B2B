@@ -31,3 +31,10 @@ def rsa_decrypt(token: str) -> str:
      plain_bytes = _get_private_key().decrypt(base64.b64decode(token), _OAEP)
      return plain_bytes.decode("utf-8")
 
+def get_public_key_pem() -> str:
+     public_key = _get_private_key().public_key()
+     return public_key.public_bytes(
+          encoding = serialization.Encoding.PEM,
+          format = serialization.PublicFormat.SubjectPublicKeyInfo
+     ).decode("ascii")
+
