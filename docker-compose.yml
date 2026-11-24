@@ -37,6 +37,7 @@ services:
       - nexsale_net
     volumes:
       - ./config:/code/config
+      - ./keys:/code/keys
 
   apache:
     build: ./apache
