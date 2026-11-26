@@ -33,12 +33,13 @@ def update_order(order_id: int, order_in: OrderUpdate, db: Session = Depends(get
 
 @router.get("/{order_id}/report", status_code = status.HTTP_200_OK)
 def create_report(order_id: int, format: str = "pdf", db: Session = Depends(get_db)):
-    file_bytes, media_type, file_extension = report_service.create_report(order_id = order_id, format = format, db = db)
+    file_bytes, media_type, file_extension, signature = report_service.create_report(order_id = order_id, format = format, db = db)
 
     return Response(
-        content = bytes(file_bytes),
+        content = file_bytes,
         media_type = media_type,
-        headers={"Content-Disposition": f'attachment; filename="order_{order_id}_invoice.{file_extension}"'}
+        headers={"Content-Disposition": f'attachment; filename="order_{order_id}_invoice.{file_extension}"',
+                 "X-Signature": signature}
 
     )
 

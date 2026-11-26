@@ -3,12 +3,14 @@ import base64
 
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
+from cryptography.exceptions import InvalidSignature
 
 from server.core.config import RSA_PRIVATE_KEY_FILE
 
 ### --------------------------------------------------###
 
 _OAEP = padding.OAEP(mgf = padding.MGF1(algorithm = hashes.SHA256()), algorithm = hashes.SHA256(), label = None)
+_PSS = padding.PSS(mgf = padding.MGF1(hashes.SHA256()), salt_length = padding.PSS.MAX_LENGTH)
 
 @lru_cache(maxsize = 1)
 def _get_private_key() -> rsa.RSAPrivateKey:
@@ -37,4 +39,16 @@ def get_public_key_pem() -> str:
           encoding = serialization.Encoding.PEM,
           format = serialization.PublicFormat.SubjectPublicKeyInfo
      ).decode("ascii")
+
+def sign_data(data: bytes) -> str:
+     signature = _get_private_key().sign(data, _PSS, hashes.SHA256())
+     return base64.b64encode(signature).decode("ascii")
+
+def verify_signature(data: bytes, signature_b64: str) -> bool:
+     try:
+          public_key = _get_private_key().public_key()
+          public_key.verify(base64.b64decode(signature_b64), data, _PSS, hashes.SHA256())
+          return True
+     except (InvalidSignature, ValueError):
+          return False
 
