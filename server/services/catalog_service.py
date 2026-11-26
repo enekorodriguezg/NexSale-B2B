@@ -18,7 +18,7 @@ def _product_to_dict(product: Product) -> dict:
         "stock": product.stock,
     }
 
-def export_catalog(db: Session) -> int:
+def export_catalog_json(db: Session) -> int:
     products = db.scalars(select(Product).order_by(Product.sku)).all()
     catalog = [_product_to_dict(product) for product in products]
 
