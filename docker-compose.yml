@@ -38,6 +38,7 @@ services:
     volumes:
       - ./config:/code/config
       - ./keys:/code/keys
+      - ./data:/code/data
 
   apache:
     build: ./apache

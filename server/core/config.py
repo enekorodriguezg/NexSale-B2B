@@ -28,3 +28,6 @@ if len(AES_KEY) != 32:
 RSA_KEYS_DIR: Path = Path(os.getenv("RSA_KEYS_DIR", "keys"))
 RSA_PRIVATE_KEY_FILE: Path = RSA_KEYS_DIR / "private_key.pem"
 RSA_PUBLIC_KEY_FILE: Path = RSA_KEYS_DIR / "public_key.pem"
+
+DATA_DIR: Path = Path(os.getenv("DATA_DIR", "data"))
+CATALOG_JSON_FILE: Path = DATA_DIR / "catalog.json"
