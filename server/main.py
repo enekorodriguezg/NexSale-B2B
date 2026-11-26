@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 import logging
 
-from .routers import orders, products, auth, users, settings, security
+from .routers import order_router, product_router, auth_router, user_router, settings_router, security_router
 from .database import Base, engine
 from scripts.seed_users import seed_database
 
@@ -18,12 +18,12 @@ app = FastAPI(
 )
 
 #Routers
-app.include_router(orders.router)
-app.include_router(products.router)
-app.include_router(auth.router)
-app.include_router(users.router)
-app.include_router(settings.router)
-app.include_router(security.router)
+app.include_router(order_router.router)
+app.include_router(product_router.router)
+app.include_router(auth_router.router)
+app.include_router(user_router.router)
+app.include_router(settings_router.router)
+app.include_router(security_router.router)
 
 
 @app.get("/health", tags = ["health"])
