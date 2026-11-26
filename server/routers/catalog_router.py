@@ -18,7 +18,7 @@ catalog_managers = RoleChecker([UserRole.ADMIN, UserRole.WAREHOUSE])
 
 @router.post("/json/export", response_model = ExportResult, status_code = status.HTTP_200_OK)
 def export_catalog_json(db: Session = Depends(get_db), current_user: User = Depends(catalog_managers)):
-    return catalog_service.export_catalog_json(db = db)
+    return ExportResult(exported = catalog_service.export_catalog_json(db = db))
 
 @router.get("/json", response_model = list[CatalogItem], status_code = status.HTTP_200_OK)
 def read_catalog_json(current_user: User = Depends(all_roles)):
