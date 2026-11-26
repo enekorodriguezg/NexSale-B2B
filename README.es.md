@@ -27,13 +27,15 @@ Desarrollado para la asignatura *Component-Oriented Programming* (Programación 
   - Cancelar o borrar un pedido abierto devuelve su stock.
   - Ordenación y filtrado por nombre de cliente.
   - Validación del identificador fiscal del cliente (OIB croata).
-- **Facturas**: cualquier pedido se puede descargar como factura en **PDF** o **RTF** (cabecera del pedido + líneas). La generación concurrente de informes está limitada con un semáforo, y un mutex protege el contador compartido de informes activos.
+- **Facturas**: cualquier pedido se puede descargar como factura en **PDF** o **RTF** (cabecera del pedido + líneas). Todas las facturas van **firmadas digitalmente** (RSA-PSS + SHA-256); la firma se envía en la cabecera `X-Signature` de la respuesta y se puede comprobar con `/security/verify`. La generación concurrente de informes está limitada con un semáforo, y un mutex protege el contador compartido de informes activos.
 - **Concurrencia segura**: las filas de stock se bloquean con `SELECT … FOR UPDATE` en un orden fijo, para evitar la sobreventa y los interbloqueos.
+- **Tarifa de precios exportable (JSON)**: el catálogo se puede exportar a `data/catalog.json`, y sus productos se pueden leer, editar y borrar **en ese archivo** sin tocar la base de datos (un lock evita las actualizaciones perdidas).
 - **Ajustes de la aplicación en un archivo INI** (`config/settings.ini`): nombre de la empresa y moneda de las facturas, y el umbral de stock bajo. El admin puede consultarlos y cambiarlos en caliente.
 - **Seguridad**:
   - Contraseñas con hash SHA-256, sal individual por usuario y *pepper* global.
   - El identificador fiscal del cliente se guarda **cifrado con AES-256-GCM**, de forma transparente, mediante un tipo de columna propio de SQLAlchemy.
   - **Buzón seguro con RSA-2048 (OAEP)**: la API publica su clave pública para que los clientes envíen datos cifrados que solo el servidor puede leer.
+  - **Firma digital** (RSA-PSS): las facturas se firman con la clave privada del servidor, y cualquier usuario con sesión puede verificar su autoría e integridad.
 - **Portal web**: frontend HTML ligero servido por Apache.
 - **Documentación interactiva de la API** generada por FastAPI en `/docs` y `/redoc`.
 
@@ -43,9 +45,9 @@ Desarrollado para la asignatura *Component-Oriented Programming* (Programación 
 |---|---|
 | API | Python 3.11, FastAPI, Pydantic, Uvicorn |
 | Persistencia | SQLAlchemy 2, MySQL 8 (PyMySQL) |
-| Seguridad | PyJWT, `hashlib` (SHA-256 + sal + *pepper*), `cryptography` (AES-256-GCM, RSA-OAEP) |
+| Seguridad | PyJWT, `hashlib` (SHA-256 + sal + *pepper*), `cryptography` (AES-256-GCM, RSA-OAEP, RSA-PSS) |
 | Informes | fpdf2 (PDF), RTF |
-| Configuración | python-dotenv (`.env`), `configparser` (INI) |
+| Configuración y archivos | python-dotenv (`.env`), `configparser` (INI), `json` |
 | Infraestructura | Docker, Docker Compose, Apache httpd 2.4 (proxy inverso) |
 
 ## Arquitectura
@@ -64,8 +66,8 @@ El código está organizado por capas (router → servicio → modelo):
 ```text
 server/
 ├── main.py          Punto de entrada y registro de routers
-├── routers/         Endpoints HTTP (auth, users, products, orders, settings, security)
-├── services/        Lógica de negocio (pedidos, stock, usuarios, informes, ajustes, seguridad)
+├── routers/         Endpoints HTTP (auth, users, products, orders, catalog, settings, security)
+├── services/        Lógica de negocio (pedidos, stock, usuarios, informes, archivos del catálogo, ajustes, seguridad)
 ├── schemas/         Modelos Pydantic de validación y respuesta
 ├── models.py        Modelos ORM de SQLAlchemy (+ tipo de columna cifrada)
 ├── constants.py     Roles de usuario y estados de pedido
@@ -74,12 +76,13 @@ server/
     ├── config.py        Variables de entorno y validación de claves
     ├── security.py      Hash de contraseñas y JWT
     ├── crypto.py        Cifrado AES-256-GCM
-    ├── rsa_crypto.py    Carga de claves RSA y cifrado OAEP
+    ├── rsa_crypto.py    Claves RSA, cifrado OAEP y firmas PSS
     └── app_settings.py  Ajustes en INI
 frontend/            Portal web estático
 apache/              Imagen y virtual host del proxy inverso
 scripts/             Carga inicial, generación de claves RSA y cliente de demostración
 config/              Archivo de ajustes (se genera al arrancar, no se versiona)
+data/                Archivos exportados del catálogo (se generan, no se versionan)
 keys/                Par de claves RSA (se genera, nunca se versiona)
 ```
 
@@ -107,7 +110,7 @@ keys/                Par de claves RSA (se genera, nunca se versiona)
    | `PEPPER` | Secreto que se añade a todas las contraseñas antes del hash |
    | `SECRET_KEY` | Clave con la que se firman los JWT (mínimo 32 caracteres) |
    | `AES_KEY` | Clave AES de 32 bytes en Base64. **Sin ella, la API no arranca.** |
-   | `RSA_KEYS_DIR`, `SETTINGS_FILE_PATH` | Opcionales: ubicación de las claves RSA y del archivo INI |
+   | `RSA_KEYS_DIR`, `SETTINGS_FILE_PATH`, `DATA_DIR` | Opcionales: ubicación de las claves RSA, del archivo INI y de los archivos exportados |
 
    Los comentarios de `.env.example` indican cómo generar cada clave, por ejemplo:
 
@@ -162,14 +165,19 @@ docker compose exec -e NEXSALE_URL=http://apache nexsale_api python scripts/send
 | `PUT` | `/orders/{id}` | admin, commercial (sus pedidos) |
 | `DELETE` | `/orders/{id}` | admin |
 | `GET` | `/orders/{id}/report?format=pdf\|rtf` | público (ver [Próximos pasos](#próximos-pasos)) |
+| `POST` | `/catalog/json/export` | admin, warehouse |
+| `GET` | `/catalog/json` | todos |
+| `PUT` / `DELETE` | `/catalog/json/{sku}` | admin, warehouse |
 | `GET` / `PUT` | `/settings` | admin |
 | `GET` | `/security/public-key` | público |
 | `POST` | `/security/decrypt` | admin |
+| `POST` | `/security/verify` (multipart: `file`, `signature`) | cualquier usuario autenticado |
 | `GET` | `/health` | público |
 
 ## Próximos pasos
 
-- [ ] Firma digital de las facturas (RSA-PSS) y endpoint de verificación
+- [x] Firma digital de las facturas (RSA-PSS) y endpoint de verificación
+- [ ] Versión XML de la tarifa de precios exportable
 - [ ] Exigir autenticación para descargar facturas
 - [ ] Fuente Unicode en las facturas (nombres de empresa con č, ć, š, ž, đ)
 - [ ] Tests automáticos
