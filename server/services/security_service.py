@@ -2,7 +2,7 @@ import binascii
 
 from fastapi import HTTPException, status
 
-from server.schemas.security_schema import PublicKeyResponse, EncryptedMessage, DecryptedMessage
+from server.schemas.security_schema import PublicKeyResponse, EncryptedMessage, DecryptedMessage, SignatureVerification
 from server.core import rsa_crypto
 
 ### --------------------------------------------------###
@@ -20,3 +20,7 @@ def decrypt_message(message: EncryptedMessage) -> DecryptedMessage:
         ) from e
     
     return DecryptedMessage(plain_text = plain_text)
+
+def verify_document(document: bytes, signature: str) -> SignatureVerification:
+    return SignatureVerification(valid = rsa_crypto.verify_signature(data = document, signature_b64 = signature))
+

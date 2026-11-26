@@ -11,3 +11,6 @@ class EncryptedMessage(BaseModel):
 
 class DecryptedMessage(BaseModel):
     plain_text: str
+
+class SignatureVerification(BaseModel):
+    valid: bool
