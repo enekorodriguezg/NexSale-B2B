@@ -6,7 +6,7 @@
 
 Backend transaccional para la gestión de pedidos y ventas entre empresas (B2B). Es una API REST construida con **FastAPI** que gestiona usuarios con distintos roles, un catálogo de productos con control de stock, pedidos de clientes con flujo de estados y generación de facturas, todo desplegado con **Docker Compose** detrás de **Apache** como proxy inverso.
 
-Desarrollado para la asignatura *Component-Oriented Programming* (Programación Orientada a Componentes) de la Universidad de Ciencias Aplicadas de Zagreb (TVZ).
+Desarrollado para la asignatura *Advanced Programming Techniques* (Técnicas Avanzadas de Programación) de la Universidad de Ciencias Aplicadas de Zagreb (TVZ).
 
 ## Funcionalidades
 

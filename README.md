@@ -6,7 +6,7 @@
  
 Transactional backend for managing B2B orders and sales. A REST API built with **FastAPI** that handles users with different roles, a product catalogue with stock control, customer orders with a status workflow and invoice generation, all deployed with **Docker Compose** behind an **Apache** reverse proxy.
  
-Developed for the *Component-Oriented Programming* course at the Zagreb University of Applied Sciences (TVZ).
+Developed for the *Advanced Programming Techniques* course at the Zagreb University of Applied Sciences (TVZ).
  
 ## Features
  
