@@ -12,7 +12,7 @@ def login(db: Session, username: str, plain_password: str) -> User | None:
     if not user or not user.is_active:
         return None
 
-    if not verify_password(plain_password = plain_password, salt = user.salt, hashed_password = user.hashed_password): 
+    if not verify_password(plain_password = plain_password, user_id = user.id, hashed_password = user.hashed_password): 
         return None
 
     return user

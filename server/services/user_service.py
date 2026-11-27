@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from server.models import User
 from server.schemas.user_schema import UserCreate, UserUpdate
-from server.core.security import generate_salt, generate_hashed_password
+from server.core.security import generate_hashed_password
 
 ### --------------------------------------------------###
 
@@ -44,18 +44,15 @@ def create_user(user_in: UserCreate, db: Session) -> User:
                 detail = f"User with username {user_in.username} already exists"
             )
 
-        salt = generate_salt()
-        hashed_password = generate_hashed_password(plain_password = user_in.password, salt = salt)
-
         new_user: User = User(
             username = user_in.username,
-            role = user_in.role.value,
-            salt = salt,
-            hashed_password = hashed_password
+            role = user_in.role,
+            hashed_password = ""
         )
 
         db.add(new_user)
-
+        db.flush()
+        new_user.hashed_password = generate_hashed_password(plain_password = user_in.password, user_id = new_user.id)
         db.commit()
         db.refresh(new_user)
         return new_user
@@ -140,8 +137,7 @@ def update_user(user_id: int, user_in: UserUpdate, db: Session, current_user: Us
             user.is_active = user_in.is_active
 
         if user_in.password is not None:
-            user.salt = generate_salt()
-            user.hashed_password = generate_hashed_password(plain_password = user_in.password, salt = user.salt)
+            user.hashed_password = generate_hashed_password(plain_password = user_in.password, user_id = user.id)
 
         db.commit()
         db.refresh(user)

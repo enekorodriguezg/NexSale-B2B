@@ -1,94 +1,55 @@
-"""Script para inicializar usuarios de prueba con Salt y Pepper en la base de datos."""
+"""Creates (or resets) the demo users. Passwords use a rule-based salt and a random pepper (R25)."""
 
 from sqlalchemy import select
-from server.core.security import (
-    generate_hashed_password,
-    generate_salt,
-    verify_password,
-)
+
+from server.core.security import generate_hashed_password, verify_password
 from server.database import SessionLocal
 from server.models import User
 
 USERS_TO_SEED = [
-    {
-        "username": "admin",
-        "plain_password": "admin",
-        "role": "admin",
-    },
-    {
-        "username": "user_com",
-        "plain_password": "user_com",
-        "role": "commercial",
-    },
-    {
-        "username": "user_ware",
-        "plain_password": "user_ware",
-        "role": "warehouse",
-    },
+    {"username": "admin", "plain_password": "admin", "role": "admin"},
+    {"username": "user_com", "plain_password": "user_com", "role": "commercial"},
+    {"username": "user_ware", "plain_password": "user_ware", "role": "warehouse"},
 ]
 
 
 def seed_database():
-  db = SessionLocal()
-  print("[*] Iniciando el proceso de seeding de usuarios...\n")
+    db = SessionLocal()
+    print("[*] Seeding demo users...")
 
-  try:
-    for user_data in USERS_TO_SEED:
-      username = user_data["username"]
-      plain_pass = user_data["plain_password"]
-      role = user_data["role"]
+    try:
+        for user_data in USERS_TO_SEED:
+            username = user_data["username"]
+            plain_pass = user_data["plain_password"]
+            role = user_data["role"]
 
-      # 1. Comprobar si el usuario ya existe para no duplicarlo
-      stmt = select(User).where(User.username == username)
-      existing_user = db.execute(stmt).scalar_one_or_none()
+            user = db.execute(select(User).where(User.username == username)).scalar_one_or_none()
+            if user is None:
+                user = User(username = username, role = role, hashed_password = "")
+                db.add(user)
+                db.flush() #INSERT inside the transaction -> the id exists, so the salt can be derived
+                action = "CREATED"
+            else:
+                user.role = role
+                action = "UPDATED"
 
-      # 2. Generar Salt criptográfico individual
-      salt = generate_salt()
+            user.hashed_password = generate_hashed_password(plain_pass, user.id)
 
-      # 3. Generar Hash combinando password + salt + PEPPER global
-      hashed_pass = generate_hashed_password(plain_pass, salt)
+            #Sanity check: the right password verifies, a wrong one does not
+            if not verify_password(plain_pass, user.id, user.hashed_password) or verify_password("WrongPassword", user.id, user.hashed_password):
+                raise RuntimeError(f"Password hashing check failed for {username}")
 
-      # 4. Verificación previa de sanidad (Sanity Check)
-      is_valid = verify_password(plain_pass, salt, hashed_pass)
-      is_invalid_checked = not verify_password(
-          "PasswordIncorrecta", salt, hashed_pass
-      )
+            print(f"[{action}] {username} ({role}) -> hash {user.hashed_password[:16]}...")
 
-      if not (is_valid and is_invalid_checked):
-        raise RuntimeError(
-            f"Fallo en la prueba criptográfica para {username}. Abortando."
-        )
+        db.commit()
+        print("[+] Seeding completed.")
 
-      if existing_user:
-        # Actualizar credenciales si ya existe
-        existing_user.hashed_password = hashed_pass #type:ignore
-        existing_user.salt = salt #type:ignore
-        existing_user.role = role #type:ignore
-        print(f"[ACTUALIZADO] Usuario: {username} | Rol: {role}")
-      else:
-        # Crear nuevo usuario
-        new_user = User(
-            username=username,
-            hashed_password=hashed_pass,
-            salt=salt,
-            role=role,
-        )
-        db.add(new_user)
-        print(f"[CREADO] Usuario: {username} | Rol: {role}")
-
-      print(f"  -> Sal única (hex 16 bytes): {salt}")
-      print(f"  -> Hash SHA-256 (64 chars) : {hashed_pass[:20]}...[recortado]")
-      print(f"  -> Verificación interna    : {'OK (Válida)' if is_valid else 'FALLO'}\n")
-
-    db.commit()
-    print("[+] Seeding completado y transacciones confirmadas en MySQL.")
-
-  except Exception as e:
-    db.rollback()
-    print(f"[!] Error durante el proceso: {e}")
-  finally:
-    db.close()
+    except Exception as e:
+        db.rollback()
+        print(f"[!] Error while seeding: {e}")
+    finally:
+        db.close()
 
 
 if __name__ == "__main__":
-  seed_database()
+    seed_database()
