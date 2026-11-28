@@ -8,7 +8,7 @@ from server.services import supplier_service
 
 ### --------------------------------------------------###
 
-router = APIRouter(prefix = "/catalog", tags = ["Catalog"])
+router = APIRouter(prefix = "/suppliers", tags = ["Suppliers"])
 supplier_managers = RoleChecker([UserRole.ADMIN, UserRole.WAREHOUSE])
 
 ### --------------------------------------------------###
