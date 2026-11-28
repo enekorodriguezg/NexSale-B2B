@@ -25,7 +25,7 @@ def create_carrier(carrier_in: CarrierCreate, current_user: User = Depends(carri
 
 @router.put("/{code}", response_model = CarrierResponse, status_code = status.HTTP_200_OK)
 def update_carrier(code: str, carrier_in: CarrierUpdate, current_user: User = Depends(carrier_managers)):
-    return carrier_service.update_carrier(code = code, changes = carrier_in.model_dump())
+    return carrier_service.update_carrier(code = code, changes = carrier_in.model_dump(exclude_none = True))
 
 @router.delete("/{code}", status_code = status.HTTP_204_NO_CONTENT)
 def delete_carrier(code: str, current_user: User = Depends(carrier_managers)):
