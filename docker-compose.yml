@@ -39,6 +39,7 @@ services:
       - ./config:/code/config
       - ./keys:/code/keys
       - ./data:/code/data
+      - ./backups:/code/backups
 
   apache:
     build: ./apache
