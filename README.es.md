@@ -30,6 +30,8 @@ Desarrollado para la asignatura *Advanced Programming Techniques* (Técnicas Ava
 - **Facturas**: cualquier pedido se puede descargar como factura en **PDF** o **RTF** (cabecera del pedido + líneas). Todas las facturas van **firmadas digitalmente** (RSA-PSS + SHA-256); la firma se envía en la cabecera `X-Signature` de la respuesta y se puede comprobar con `/security/verify`. La generación concurrente de informes está limitada con un semáforo, y un mutex protege el contador compartido de informes activos.
 - **Concurrencia segura**: las filas de stock se bloquean con `SELECT … FOR UPDATE` en un orden fijo, para evitar la sobreventa y los interbloqueos.
 - **Directorio de proveedores (archivo JSON)** y **lista de transportistas (archivo XML)**: datos que no están en MySQL. Cada archivo permite añadir, leer, editar y borrar registros, protegidos con un lock para evitar actualizaciones perdidas. Los proveedores se pueden filtrar por categoría.
+- **Copias de seguridad en un proceso aparte**: el admin llama a `POST /backups`; la API lanza `scripts/backup_data.py` como proceso hijo, que empaqueta los archivos JSON, XML e INI en un `.tar.gz`. La API lee su código de salida e informa de los errores (nada que copiar, fallo al escribir, tiempo agotado).
+- **Precios en otras monedas**: `GET /products/{id}/prices` convierte el precio de un producto con los tipos de cambio oficiales del BCE, obtenidos de la API REST pública [Frankfurter](https://frankfurter.dev).
 - **Ajustes de la aplicación en un archivo INI** (`config/settings.ini`): nombre de la empresa y moneda de las facturas, y el umbral de stock bajo. El admin puede consultarlos y cambiarlos en caliente.
 - **Seguridad**:
   - Contraseñas con hash SHA-256, **sal variable derivada por una regla** (a partir del ID del usuario, inmutable, y sin guardarse) y un ***pepper* aleatorio** entre 52 valores que tampoco se guarda: en el login se prueban todos los valores posibles, siempre el rango completo para que el tiempo sea constante.
@@ -48,6 +50,7 @@ Desarrollado para la asignatura *Advanced Programming Techniques* (Técnicas Ava
 | Seguridad | PyJWT, `hashlib` (SHA-256 + sal por regla + *pepper*), `cryptography` (AES-256-GCM, RSA-OAEP, RSA-PSS) |
 | Informes | fpdf2 (PDF), RTF |
 | Configuración y archivos | python-dotenv (`.env`), `configparser` (INI), `json`, `xml.etree.ElementTree` |
+| Procesos y cliente HTTP | `subprocess`, `tarfile`, httpx |
 | Infraestructura | Docker, Docker Compose, Apache httpd 2.4 (proxy inverso) |
 
 ## Arquitectura
@@ -66,7 +69,7 @@ El código está organizado por capas (router → servicio → modelo):
 ```text
 server/
 ├── main.py          Punto de entrada y registro de routers
-├── routers/         Endpoints HTTP (auth, users, products, orders, suppliers, carriers, settings, security)
+├── routers/         Endpoints HTTP (auth, users, products, orders, suppliers, carriers, settings, security, backups)
 ├── services/        Lógica de negocio (pedidos, stock, usuarios, informes, archivos JSON/XML, ajustes, seguridad)
 ├── schemas/         Modelos Pydantic de validación y respuesta
 ├── models.py        Modelos ORM de SQLAlchemy (+ tipo de columna cifrada)
@@ -83,6 +86,7 @@ apache/              Imagen y virtual host del proxy inverso
 scripts/             Carga inicial, generación de claves RSA y cliente de demostración
 config/              Archivo de ajustes (se genera al arrancar, no se versiona)
 data/                suppliers.json y carriers.xml (se generan, no se versionan)
+backups/             Copias de seguridad (se generan, no se versionan)
 keys/                Par de claves RSA (se genera, nunca se versiona)
 ```
 
@@ -109,7 +113,7 @@ keys/                Par de claves RSA (se genera, nunca se versiona)
    | `MYSQL_PORT` | Puerto de MySQL (déjalo en `3306`: la API también lo usa para conectarse) |
    | `SECRET_KEY` | Clave con la que se firman los JWT (mínimo 32 caracteres) |
    | `AES_KEY` | Clave AES de 32 bytes en Base64. **Sin ella, la API no arranca.** |
-   | `RSA_KEYS_DIR`, `SETTINGS_FILE_PATH`, `DATA_DIR` | Opcionales: ubicación de las claves RSA, del archivo INI y de los archivos JSON/XML |
+   | `RSA_KEYS_DIR`, `SETTINGS_FILE_PATH`, `DATA_DIR`, `BACKUPS_DIR` | Opcionales: ubicación de las claves RSA, del archivo INI, de los archivos JSON/XML y de las copias de seguridad |
 
    Los comentarios de `.env.example` indican cómo generar cada clave, por ejemplo:
 
@@ -159,6 +163,7 @@ docker compose exec -e NEXSALE_URL=http://apache nexsale_api python scripts/send
 | `POST` | `/products` | admin, warehouse |
 | `PUT` / `DELETE` | `/products/{id}` | admin, warehouse |
 | `PUT` / `GET` | `/products/{id}/image` | admin, warehouse / todos |
+| `GET` | `/products/{id}/prices?currencies=USD,GBP` | todos |
 | `GET` | `/orders?order_by=&sort_order=&customer=` | todos (los comerciales solo ven los suyos) |
 | `POST` | `/orders` | admin, commercial |
 | `PUT` | `/orders/{id}` | admin, commercial (sus pedidos) |
@@ -173,6 +178,7 @@ docker compose exec -e NEXSALE_URL=http://apache nexsale_api python scripts/send
 | `GET` | `/security/public-key` | público |
 | `POST` | `/security/decrypt` | admin |
 | `POST` | `/security/verify` (multipart: `file`, `signature`) | cualquier usuario autenticado |
+| `POST` | `/backups` | admin |
 | `GET` | `/health` | público |
 
 ## Próximos pasos

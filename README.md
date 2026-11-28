@@ -28,6 +28,8 @@ Developed for the *Advanced Programming Techniques* course at the Zagreb Univers
 - **Invoices**: any order can be downloaded as a **PDF** or **RTF** invoice (order header + line items). Every invoice is **digitally signed** (RSA-PSS + SHA-256); the signature is sent in the `X-Signature` response header and can be checked with `/security/verify`. Concurrent report generation is limited with a semaphore, and a mutex protects the shared counter of active reports.
 - **Concurrency safety**: stock rows are locked with `SELECT … FOR UPDATE` in a fixed order to avoid overselling and deadlocks.
 - **Supplier directory (JSON file)** and **carrier list (XML file)**: data that does not live in MySQL. Each file supports adding, reading, editing and deleting records, protected by a lock to avoid lost updates. Suppliers can be filtered by category.
+- **Backups in a separate process**: the admin triggers `POST /backups`; the API starts `scripts/backup_data.py` as a child process, which packs the JSON, XML and INI files into a `.tar.gz`. The API reads its exit code and reports errors (nothing to back up, write failure, timeout).
+- **Prices in other currencies**: `GET /products/{id}/prices` converts a product price with the official ECB exchange rates, fetched from the public [Frankfurter](https://frankfurter.dev) REST API.
 - **Application settings in an INI file** (`config/settings.ini`): company name and currency for invoices and the low-stock threshold. The admin can read and change them at runtime.
 - **Security**:
   - Passwords hashed with SHA-256, a **variable salt derived from a rule** (from the immutable user ID, never stored) and a **random pepper** from a 52-value range that is never stored either: at login, every possible pepper is tried, always the full range so the login time is constant.
@@ -45,6 +47,7 @@ Developed for the *Advanced Programming Techniques* course at the Zagreb Univers
 | Security | PyJWT, `hashlib` (SHA-256 + rule-based salt + pepper), `cryptography` (AES-256-GCM, RSA-OAEP, RSA-PSS) |
 | Reports | fpdf2 (PDF), RTF |
 | Configuration and files | python-dotenv (`.env`), `configparser` (INI), `json`, `xml.etree.ElementTree` |
+| Processes and HTTP client | `subprocess`, `tarfile`, httpx |
 | Infrastructure | Docker, Docker Compose, Apache httpd 2.4 (reverse proxy) |
  
 ## Architecture
@@ -63,7 +66,7 @@ The code is organised in layers (router → service → model):
 ```text
 server/
 ├── main.py          Entry point and router registration
-├── routers/         HTTP endpoints (auth, users, products, orders, suppliers, carriers, settings, security)
+├── routers/         HTTP endpoints (auth, users, products, orders, suppliers, carriers, settings, security, backups)
 ├── services/        Business logic (orders, stock, users, reports, JSON/XML files, settings, security)
 ├── schemas/         Pydantic validation and response models
 ├── models.py        SQLAlchemy ORM models (+ encrypted column type)
@@ -80,6 +83,7 @@ apache/              Reverse proxy image and virtual host
 scripts/             Database seeding, RSA key generation and demo client
 config/              Runtime settings file (generated, not versioned)
 data/                suppliers.json and carriers.xml (generated, not versioned)
+backups/             Backup archives (generated, not versioned)
 keys/                RSA key pair (generated, never versioned)
 ```
  
@@ -104,7 +108,7 @@ cp .env.example .env
    | `MYSQL_PORT` | MySQL port (keep `3306`: the API also uses it to reach the database) |
    | `SECRET_KEY` | Key used to sign JWTs (at least 32 characters) |
    | `AES_KEY` | 32-byte AES key in Base64. **The API will not start without it.** |
-   | `RSA_KEYS_DIR`, `SETTINGS_FILE_PATH`, `DATA_DIR` | Optional: custom locations for the RSA keys, the INI file and the JSON/XML data files |
+   | `RSA_KEYS_DIR`, `SETTINGS_FILE_PATH`, `DATA_DIR`, `BACKUPS_DIR` | Optional: custom locations for the RSA keys, the INI file, the JSON/XML data files and the backups |
  
    The comments in `.env.example` show how to generate each key, for example:
  
@@ -151,6 +155,7 @@ docker compose exec -e NEXSALE_URL=http://apache nexsale_api python scripts/send
 | `POST` | `/products` | admin, warehouse |
 | `PUT` / `DELETE` | `/products/{id}` | admin, warehouse |
 | `PUT` / `GET` | `/products/{id}/image` | admin, warehouse / all |
+| `GET` | `/products/{id}/prices?currencies=USD,GBP` | all |
 | `GET` | `/orders?order_by=&sort_order=&customer=` | all (commercials only see their own) |
 | `POST` | `/orders` | admin, commercial |
 | `PUT` | `/orders/{id}` | admin, commercial (own orders) |
@@ -165,6 +170,7 @@ docker compose exec -e NEXSALE_URL=http://apache nexsale_api python scripts/send
 | `GET` | `/security/public-key` | public |
 | `POST` | `/security/decrypt` | admin |
 | `POST` | `/security/verify` (multipart: `file`, `signature`) | any authenticated user |
+| `POST` | `/backups` | admin |
 | `GET` | `/health` | public |
  
 ## Roadmap
