@@ -33,7 +33,7 @@ def get_rates(base: str, quotes: list[str]) -> tuple[dict[str, float], str]:
         )
 
     rows = response.json()
-    rates = {row["quote"]: row["date"] for row in rows}
+    rates = {row["quote"]: row["rate"] for row in rows}
     rates_date = rows[0]["date"] if rows else ""
-    
+
     return rates, rates_date
