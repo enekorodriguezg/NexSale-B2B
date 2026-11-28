@@ -1,34 +1,30 @@
 from fastapi import APIRouter, status, Depends
-from sqlalchemy.orm import Session
 
-from server.schemas.catalog_schema import ExportResult, CatalogItem, CatalogItemUpdate
+from server.schemas.supplier_schema import SupplierCreate, SupplierUpdate, SupplierResponse
 from server.api.deps import RoleChecker
 from server.constants import UserRole
 from server.models import User
-from server.database import get_db
-from server.services import catalog_service
+from server.services import supplier_service
 
 ### --------------------------------------------------###
 
 router = APIRouter(prefix = "/catalog", tags = ["Catalog"])
-all_roles = RoleChecker([UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.WAREHOUSE])
-catalog_managers = RoleChecker([UserRole.ADMIN, UserRole.WAREHOUSE])
+supplier_managers = RoleChecker([UserRole.ADMIN, UserRole.WAREHOUSE])
 
 ### --------------------------------------------------###
 
-@router.post("/json/export", response_model = ExportResult, status_code = status.HTTP_200_OK)
-def export_catalog_json(db: Session = Depends(get_db), current_user: User = Depends(catalog_managers)):
-    return ExportResult(exported = catalog_service.export_catalog_json(db = db))
+@router.get("", response_model = list[SupplierResponse], status_code = status.HTTP_200_OK)
+def get_suppliers(category: str | None = None, current_user: User = Depends(supplier_managers)):
+    return supplier_service.get_suppliers(category = category)
 
-@router.get("/json", response_model = list[CatalogItem], status_code = status.HTTP_200_OK)
-def read_catalog_json(current_user: User = Depends(all_roles)):
-    return catalog_service.read_catalog_json()
+@router.post("", response_model = SupplierResponse, status_code = status.HTTP_201_CREATED)
+def create_supplier(supplier_in: SupplierCreate, current_user: User = Depends(supplier_managers)):
+    return supplier_service.create_supplier(supplier = supplier_in.model_dump())
 
-@router.put("/json/{sku}", response_model = CatalogItem, status_code = status.HTTP_200_OK)
-def update_catalog_item_json(sku: str, item_in: CatalogItemUpdate, current_user: User = Depends(catalog_managers)):
-    return catalog_service.update_catalog_item_json(sku = sku, changes = item_in.model_dump(exclude_none = True))
+@router.put("/{code}", response_model = SupplierResponse, status_code = status.HTTP_200_OK)
+def update_supplier(code: str, supplier_in: SupplierUpdate, current_user: User = Depends(supplier_managers)):
+    return supplier_service.update_supplier(code = code, changes = supplier_in.model_dump(exclude_none = True))
 
-@router.delete("/json/{sku}", status_code = status.HTTP_204_NO_CONTENT)
-def delete_catalog_item_json(sku: str, current_user: User = Depends(catalog_managers)):
-    catalog_service.delete_catalog_item_json(sku = sku)
-
+@router.delete("/{code}", status_code = status.HTTP_204_NO_CONTENT)
+def delete_supplier(code: str, current_user: User = Depends(supplier_managers)):
+    supplier_service.delete_supplier(code = code)

@@ -1,12 +1,9 @@
 import json
 import threading
 
-from sqlalchemy import select
-from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 
-from server.models import Product
-from server.core.config import CATALOG_JSON_FILE
+from server.core.config import SUPPLIERS_JSON_FILE
 
 ### --------------------------------------------------###
 
@@ -15,65 +12,58 @@ _json_lock = threading.Lock()
 ### --------------------------------------------------###
 
 def _load_json() -> list[dict]:
-    if not CATALOG_JSON_FILE.exists():
-        raise HTTPException(
-            status_code = status.HTTP_404_NOT_FOUND,
-            detail = "Catalog has not been exported to JSON yet"
-        )
-    with open(CATALOG_JSON_FILE, "r", encoding = "utf-8") as file:
+    if not SUPPLIERS_JSON_FILE.exists():
+        return []
+    with open(SUPPLIERS_JSON_FILE, "r", encoding = "utf-8") as file:
         return json.load(file)
 
-def _save_json(catalog: list[dict]) -> None:
-    CATALOG_JSON_FILE.parent.mkdir(parents = True, exist_ok = True)
-    with open(CATALOG_JSON_FILE, "w", encoding = "utf-8") as file:
-        json.dump(catalog, file, indent = 2, ensure_ascii = False)
+def _save_json(suppliers: list[dict]) -> None:
+    SUPPLIERS_JSON_FILE.parent.mkdir(parents = True, exist_ok = True)
+    with open(SUPPLIERS_JSON_FILE, "w", encoding = "utf-8") as file:
+        json.dump(suppliers, file, indent = 2, ensure_ascii = False)
 
-def _find_index(catalog: list[dict], sku: str) -> int:
-    for index, item in enumerate(catalog):
-        if item["sku"] == sku:
+def _find_index(suppliers: list[dict], code: str) -> int:
+    for index, supplier in enumerate(suppliers):
+        if supplier["code"] == code:
             return index
 
     raise HTTPException(
         status_code = status.HTTP_404_NOT_FOUND,
-        detail = f"Product with sku {sku} not found in the catalog file"
+        detail = f"Supplier with code {code} not found"
     )
 
 ### --------------------------------------------------###
 
-def _product_to_dict(product: Product) -> dict:
-    return {
-        "sku": product.sku,
-        "name": product.name,
-        "description": product.description,
-        "category": product.category,
-        "base_price": product.base_price,
-        "stock": product.stock,
-    }
-
-def export_catalog_json(db: Session) -> int:
-    products = db.scalars(select(Product).order_by(Product.sku)).all()
-    catalog = [_product_to_dict(product) for product in products]
-
+def get_suppliers(category: str | None = None) -> list[dict]:
     with _json_lock:
-        _save_json(catalog)
+        suppliers = _load_json()
+        if category is not None:
+            suppliers = [supplier for supplier in suppliers if supplier["category"] == category]
+        return suppliers
 
-    return len(catalog)
-
-def read_catalog_json() -> list[dict]:
+def create_supplier(supplier: dict) -> dict:
     with _json_lock:
-        return _load_json()
+        suppliers = _load_json()
+        if any(existing["code"] == supplier["code"] for existing in suppliers):
+            raise HTTPException(
+                status_code = status.HTTP_409_CONFLICT,
+                detail = f"Supplier with code {supplier['code']} already exists"
+            )
+        suppliers.append(supplier)
+        _save_json(suppliers = suppliers)
+        return supplier
 
-def update_catalog_item_json(sku: str, changes: dict) -> dict:
+def update_supplier(code: str, changes: dict) -> dict:
     with _json_lock:
-        catalog = _load_json()
-        index = _find_index(catalog = catalog, sku = sku)
-        catalog[index].update(changes)
-        _save_json(catalog = catalog)
-        return catalog[index]
+        suppliers = _load_json()
+        index = _find_index(suppliers = suppliers, code = code)
+        suppliers[index].update(changes)
+        _save_json(suppliers = suppliers)
+        return suppliers[index]
 
-def delete_catalog_item_json(sku: str) -> None:
+def delete_supplier(code: str) -> None:
     with _json_lock:
-        catalog = _load_json()
-        index = _find_index(catalog = catalog, sku = sku)
-        catalog.pop(index)
-        _save_json(catalog = catalog)
+        suppliers = _load_json()
+        index = _find_index(suppliers = suppliers, code = code)
+        suppliers.pop(index)
+        _save_json(suppliers = suppliers)
