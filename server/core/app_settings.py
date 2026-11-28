@@ -3,9 +3,9 @@ import os
 import threading
 from pathlib import Path
 
-### --------------------------------------------------###
+from server.core.config import SETTINGS_FILE
 
-SETTINGS_FILE = Path(os.getenv("SETTINGS_FILE_PATH", "config/settings.ini"))
+### --------------------------------------------------###  
 
 DEFAULT_SETTINGS = {
     "company": {
