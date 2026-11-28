@@ -27,10 +27,10 @@ Developed for the *Advanced Programming Techniques* course at the Zagreb Univers
   - Customer tax ID validation (Croatian OIB).
 - **Invoices**: any order can be downloaded as a **PDF** or **RTF** invoice (order header + line items). Every invoice is **digitally signed** (RSA-PSS + SHA-256); the signature is sent in the `X-Signature` response header and can be checked with `/security/verify`. Concurrent report generation is limited with a semaphore, and a mutex protects the shared counter of active reports.
 - **Concurrency safety**: stock rows are locked with `SELECT … FOR UPDATE` in a fixed order to avoid overselling and deadlocks.
-- **Exportable price list (JSON)**: the product catalogue can be exported to `data/catalog.json`, and products can be read, edited and deleted **in that file** without touching the database (a file lock prevents lost updates).
+- **Supplier directory (JSON file)** and **carrier list (XML file)**: data that does not live in MySQL. Each file supports adding, reading, editing and deleting records, protected by a lock to avoid lost updates. Suppliers can be filtered by category.
 - **Application settings in an INI file** (`config/settings.ini`): company name and currency for invoices and the low-stock threshold. The admin can read and change them at runtime.
 - **Security**:
-  - Passwords hashed with SHA-256, a per-user salt and a global pepper.
+  - Passwords hashed with SHA-256, a **variable salt derived from a rule** (from the immutable user ID, never stored) and a **random pepper** from a 52-value range that is never stored either: at login, every possible pepper is tried, always the full range so the login time is constant.
   - The customer tax ID is **encrypted at rest with AES-256-GCM**, transparently, through a custom SQLAlchemy column type.
   - **RSA-2048 (OAEP) secure inbox**: the API publishes its public key so clients can send encrypted data that only the server can read.
   - **Digital signatures** (RSA-PSS): invoices are signed with the server private key, and anyone with a session can verify their authorship and integrity.
@@ -42,9 +42,9 @@ Developed for the *Advanced Programming Techniques* course at the Zagreb Univers
 |---|---|
 | API | Python 3.11, FastAPI, Pydantic, Uvicorn |
 | Persistence | SQLAlchemy 2, MySQL 8 (PyMySQL) |
-| Security | PyJWT, `hashlib` (SHA-256 + salt + pepper), `cryptography` (AES-256-GCM, RSA-OAEP, RSA-PSS) |
+| Security | PyJWT, `hashlib` (SHA-256 + rule-based salt + pepper), `cryptography` (AES-256-GCM, RSA-OAEP, RSA-PSS) |
 | Reports | fpdf2 (PDF), RTF |
-| Configuration and files | python-dotenv (`.env`), `configparser` (INI), `json` |
+| Configuration and files | python-dotenv (`.env`), `configparser` (INI), `json`, `xml.etree.ElementTree` |
 | Infrastructure | Docker, Docker Compose, Apache httpd 2.4 (reverse proxy) |
  
 ## Architecture
@@ -63,8 +63,8 @@ The code is organised in layers (router → service → model):
 ```text
 server/
 ├── main.py          Entry point and router registration
-├── routers/         HTTP endpoints (auth, users, products, orders, catalog, settings, security)
-├── services/        Business logic (orders, stock, users, reports, catalog files, settings, security)
+├── routers/         HTTP endpoints (auth, users, products, orders, suppliers, carriers, settings, security)
+├── services/        Business logic (orders, stock, users, reports, JSON/XML files, settings, security)
 ├── schemas/         Pydantic validation and response models
 ├── models.py        SQLAlchemy ORM models (+ encrypted column type)
 ├── constants.py     User roles and order statuses
@@ -79,7 +79,7 @@ frontend/            Static web portal
 apache/              Reverse proxy image and virtual host
 scripts/             Database seeding, RSA key generation and demo client
 config/              Runtime settings file (generated, not versioned)
-data/                Exported catalogue files (generated, not versioned)
+data/                suppliers.json and carriers.xml (generated, not versioned)
 keys/                RSA key pair (generated, never versioned)
 ```
  
@@ -102,10 +102,9 @@ cp .env.example .env
    |---|---|
    | `MYSQL_ROOT_PASSWORD`, `MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD` | MySQL credentials |
    | `MYSQL_PORT` | MySQL port (keep `3306`: the API also uses it to reach the database) |
-   | `PEPPER` | Secret added to every password before hashing |
    | `SECRET_KEY` | Key used to sign JWTs (at least 32 characters) |
    | `AES_KEY` | 32-byte AES key in Base64. **The API will not start without it.** |
-   | `RSA_KEYS_DIR`, `SETTINGS_FILE_PATH`, `DATA_DIR` | Optional: custom locations for the RSA keys, the INI file and the exported files |
+   | `RSA_KEYS_DIR`, `SETTINGS_FILE_PATH`, `DATA_DIR` | Optional: custom locations for the RSA keys, the INI file and the JSON/XML data files |
  
    The comments in `.env.example` show how to generate each key, for example:
  
@@ -157,9 +156,11 @@ docker compose exec -e NEXSALE_URL=http://apache nexsale_api python scripts/send
 | `PUT` | `/orders/{id}` | admin, commercial (own orders) |
 | `DELETE` | `/orders/{id}` | admin |
 | `GET` | `/orders/{id}/report?format=pdf\|rtf` | public (see [Roadmap](#roadmap)) |
-| `POST` | `/catalog/json/export` | admin, warehouse |
-| `GET` | `/catalog/json` | all |
-| `PUT` / `DELETE` | `/catalog/json/{sku}` | admin, warehouse |
+| `GET` / `POST` | `/suppliers?category=` | admin, warehouse |
+| `PUT` / `DELETE` | `/suppliers/{code}` | admin, warehouse |
+| `GET` | `/carriers` | all |
+| `POST` | `/carriers` | admin, warehouse |
+| `PUT` / `DELETE` | `/carriers/{code}` | admin, warehouse |
 | `GET` / `PUT` | `/settings` | admin |
 | `GET` | `/security/public-key` | public |
 | `POST` | `/security/decrypt` | admin |
@@ -169,7 +170,6 @@ docker compose exec -e NEXSALE_URL=http://apache nexsale_api python scripts/send
 ## Roadmap
  
 - [x] Digital signature of invoices (RSA-PSS) and a verification endpoint
-- [ ] XML version of the exportable price list
 - [ ] Require authentication to download invoices
 - [ ] Unicode font for invoices (company names with č, ć, š, ž, đ)
 - [ ] Automated tests
@@ -177,4 +177,3 @@ docker compose exec -e NEXSALE_URL=http://apache nexsale_api python scripts/send
 ## Author
  
 **Eneko Rodríguez** · [GitHub](https://github.com/enekorodriguezg)
- 
