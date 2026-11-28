@@ -7,6 +7,7 @@ from server.services import product_service
 from server.schemas.product_schema import ProductCreate, ProductResponse, ProductUpdate
 from server.api.deps import RoleChecker
 from server.constants import UserRole
+from server.schemas.exchange_schema import ProductPrices
 
 ### --------------------------------------------------###
 
@@ -42,5 +43,9 @@ async def insert_image(product_id: int, file: UploadFile, db: Session = Depends(
 def get_product_image(product_id: int, db: Session = Depends(get_db), current_user: User = Depends(RoleChecker([UserRole.ADMIN, UserRole.COMMERCIAL, UserRole.WAREHOUSE]))):
     image_bytes = product_service.get_product_image(product_id = product_id, db = db)
     return Response(content = image_bytes, media_type = "image/jpeg")
+
+@router.get("/{product_id}/prices", response_model = ProductPrices, status_code = status.HTTP_200_OK)
+def get_product_prices(product_id: int, currencies: str, db: Session = Depends(get_db), current_user: User = Depends(RoleChecker([UserRole.ADMIN, UserRole.WAREHOUSE, UserRole.COMMERCIAL]))):
+    return product_service.get_product_prices(product_id = product_id, currencies = currencies, db = db)
 
     

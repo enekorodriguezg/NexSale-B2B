@@ -1,10 +1,12 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import select
-from fastapi import Depends, HTTPException, status
+from fastapi import HTTPException, status
 
 from server.models import Product
 from server.schemas.product_schema import ProductCreate, ProductUpdate
-from server.database import get_db
+from server.schemas.exchange_schema import ProductPrices, ConvertedPrice
+from server.core.app_settings import app_settings
+from server.services import exchange_service
 
 ### --------------------------------------------------###
 
@@ -190,3 +192,35 @@ def delete_product(product_id: int, db: Session) -> None:
             status_code = status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail = "An error occurred"
         ) from e
+
+def get_product_prices(product_id: int, currencies: str, db: Session) -> ProductPrices:
+    product = get_product_by_id(product_id = product_id, db = db)
+    if not product:
+        raise HTTPException(
+            status_code = status.HTTP_404_NOT_FOUND,
+            detail = f"Product with ID {product_id} not found"
+        )
+
+    quotes = [code.strip().upper() for code in currencies.split(",") if code.strip()]
+    if not quotes or any(len(code) != 3 or not code.isalpha() for code in quotes):
+        raise HTTPException(
+            status_code = status.HTTP_400_BAD_REQUEST,
+            detail = "Currencies must be 3-letter codes separated by commas, e.g. EUR,USD"
+        )
+
+    base_currency = app_settings.currency
+    rates, rates_date = exchange_service.get_rates(base = base_currency, quotes = quotes)
+
+    prices = [
+        ConvertedPrice(currency = code, rate = rate, price = round(product.base_price * rate, 2)) for code, rate in rates.items()
+    ]
+
+    return ProductPrices(
+        product_id = product_id,
+        name = product.name,
+        base_currency = base_currency,
+        base_price = product.base_price,
+        rates_date = rates_date,
+        prices = prices
+    )
+    
