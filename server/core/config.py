@@ -30,3 +30,4 @@ RSA_PUBLIC_KEY_FILE: Path = RSA_KEYS_DIR / "public_key.pem"
 
 DATA_DIR: Path = Path(os.getenv("DATA_DIR", "data"))
 SUPPLIERS_JSON_FILE: Path = DATA_DIR / "suppliers.json"
+CARRIERS_XML_FILE: Path = DATA_DIR / "carriers.xml"
